@@ -1,0 +1,481 @@
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+    }
+
+    #upload {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+    }
+  
+    .ui-input {
+      padding: 14px;
+      font-size: 17px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+    }
+
+    .small-input {
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+
+    .small-btn {
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+
+
+    .ui-btn {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+
+      background: #1e293b;
+      color: white;
+      border: none;
+      border-radius: 0;
+
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      cursor: pointer;
+    }
+
+
+    .ui-secondary {
+      background: #059669;
+    }
+
+    .ui-btn:hover {
+      opacity: 0.9;
+    }
+
+          /* === UI BAR COMPACT === */
+    .ui-bar {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      width: 240px;          /* 🔥 lebih ramping */
+      background: #ffffffee;
+      backdrop-filter: blur(6px);
+      border-radius: 14px;
+      padding: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.15);
+      z-index: 9999;
+    }
+
+      .status {
+      font-weight: bold;
+    }
+
+        .ui-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+    }
+
+      #toggleBtn {
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+        #cancelRouteBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 22px;
+      font-size: 16px;
+      border-radius: 30px;
+      background: #dc2626;
+      color: white;
+      font-weight: bold;
+      border: none;
+      z-index: 9999;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    
+
+    .ui-bar.minimized {
+      height: auto;
+    }
+
+    .ui-bar.minimized #uiContent {
+      display: none;
+    }
+
+   /* === FLOATING CONTROL GROUP (POJOK KANAN ATAS) === */
+    #floatingControls {
+      position: fixed;
+      top: env(safe-area-inset-top, 12px);
+      right: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      z-index: 10000;
+    }
+
+    /* Geser ke bawah supaya tidak nutup tombol cari */
+    @media (max-width: 768px) {
+      #floatingControls {
+        top: 35px;   /* ⬅️ aman dari search / menu mobile */
+      }
+    }
+
+    /* === TOMBOL FLOATING === */
+    /* === TOMBOL FLOATING KOTAK LURUS === */
+    .float-btn {
+      min-width: 110px;
+      height: 38px;
+
+      padding: 0 10px;
+      border-radius: 0;          /* ⬅️ TANPA SUDUT */
+      border: none;
+
+      background: #0f172a;
+      color: #fff;
+
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;       /* ⬅️ teks tidak turun */
+      overflow: hidden;          /* ⬅️ cegah keluar tombol */
+      text-overflow: ellipsis;
+
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,.3);
+    }
+
+      #historyPanel {
+      position: fixed;
+      top: 120px;              /* jangan 0, biar tidak nutup header */
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 420px;
+
+      max-height: 60vh;       /* 🔥 INI KUNCI */
+      overflow-y: auto;       /* 🔥 scroll ke dalam */
+
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      z-index: 9999;
+    }
+
+    @media (max-width: 768px) {
+      #historyPanel {
+        top: 140px;           /* ⬅️ aman di HP kecil */
+      }
+    }
+
+
+      #map {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #111827;
+      color: #fff;
+      padding: 16px 22px;
+      border-radius: 16px;
+      font-size: 15px;
+      max-width: 90%;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.4s ease;
+      z-index: 99999;
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    }
+
+      .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #searchBtn {
+        width: 64px;        /* ⬅️ kunci lebar */
+        padding: 6px 0;
+        flex-shrink: 0;
+        text-align: center;
+      }
+
+      #searchInput {
+        flex: 1;
+        min-width: 0;
+      }
+
+        /* === Modern Marker Teardrop === */
+      .custom-marker {
+      width: 13px;
+      height: 13px;
+      border-radius: 50% 50% 50% 0;
+      transform: rotate(-45deg);
+      border: 1.5px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      position: relative;
+    }
+
+    .custom-marker::after {
+      content: "";
+      width: 6px;
+      height: 6px;
+      background: white;
+      border-radius: 50%;
+      position: absolute;
+      top: 7px;
+      left: 7px;
+    }
+
+    .custom-marker.black {
+      background: #000;
+    }
+
+    .popup-card {
+      font-size: 14px;
+      line-height: 1.5;
+      min-width: 220px;
+    }
+
+    .popup-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .popup-row {
+      margin-bottom: 2px;
+    }
+
+    .popup-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-go {
+      flex: 1;
+      background: #2dd4bf;
+      border: none;
+      color: white;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .btn-done {
+      flex: 1;
+      background: #fb7185;
+      border: none;
+      color: white;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .detail-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 26vh;
+      background: white;
+      z-index: 9999;
+      transform: translateY(100%);
+      transition: 0.3s ease;
+      border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 25px rgba(0,0,0,0.2);
+      padding: 16px;
+      overflow-y: auto;
+      }
+      #detailSplit {
+      flex-direction: row;
+    }
+
+        /* === CARD TAHUN LALU (HITAM) === */
+    .card-th {
+      background: #111827;          /* hitam elegan */
+      color: #f9fafb;               /* teks terang */
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .card-th h3 {
+      color: #fff;
+    }
+
+    .card-th .btn-go {
+      background: #374151;          /* abu gelap */
+    }
+
+    .card-th .btn-done {
+      background: #dc2626;          /* merah tetap kontras */
+    }
+
+
+    @media (max-width: 600px) {
+      #detailSplit {
+        flex-direction: column;
+      }
+    }
+
+    .detail-panel.open {
+      transform: translateY(0);
+    }
+
+
+    .leaflet-routing-container {
+      display: none !important;
+    }
+
+    #sidebar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 22vh;   /* sebelumnya kemungkinan 60–80vh */
+    background: #fff;
+    border-top: 1px solid #ddd;
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    box-shadow: 0 -5px 20px rgba(0,0,0,0.15);
+    font-size: 14px;
+    }
+
+    #sidebar {
+      backdrop-filter: blur(6px);
+      background: rgba(255,255,255,0.95);
+    }
+
+    #searchInput {
+      flex: 1;
+      min-width: 0;              /* ⬅️ FIX FLEX OVERFLOW HP */
+    }
+
+    #searchBtn {
+      flex-shrink: 0;
+    }
+
+    .highlight-marker {
+    animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
+
+    .marker-label {
+      background: transparent;
+      border: none;
+      color: #111;
+      font-weight: bold;
+      font-size: 11px;
+      text-shadow: 0 1px 2px white;
+    }
+
+    .highlight {
+      animation: pulse 0.4s ease-in-out 4;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+    /* === Marker Petugas (LIVE GPS) === */
+    .petugas-marker {
+      width: 38px;
+      height: 38px;
+      background: #2563eb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 14px rgba(37,99,235,0.6);
+      border: 2px solid white;
+    }
+
+    .petugas-marker img {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* === UI Compact Mode === */
+
+    .small-input {
+      padding: 8px 10px;
+      font-size: 14px;
+      border-radius: 10px;
+    }
+
+    .small-btn {
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 10px;
+    }
+
+    .ui-header b {
+      font-size: 15px;
+    }
+
+    .status {
+      font-size: 13px;
+    }
+
+    #uiBar {
+      max-width: 280px;
+    }
+
+    #downloadBtn {
+      background: #1f2937;
+    }
+
+    #zoomBtn {
+      background: #0f766e;
+    }
+
+    #historyToggleBtn {
+      background: #374151;
+    }
+    
+    .close-history {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      border: none;
+      background: rgba(0,0,0,0.6);
+      color: #fff;
+      font-size: 16px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .close-history:hover {
+      background: rgba(0,0,0,0.85);
+    }
+  
+
+
