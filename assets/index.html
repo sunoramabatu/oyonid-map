@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  
+
+<head>
+  <link rel="stylesheet" href="./css/app.css">
+  <title>OyonID Map</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css"/>
+
+</head>
+
+<body>
+
+<div class="ui-bar" id="uiBar">
+
+  <!-- HEADER (tidak pernah hilang) -->
+  <div class="ui-header">
+    <b>📍 OyonID Map</b>
+    <button id="toggleBtn">➖</button>
+  </div>
+
+  <!-- KONTEN (yang boleh di-hide) -->
+  <div id="uiContent">
+
+    <input type="file" id="upload" accept=".xlsx,.xls" style="display:none;" />
+    <button class="ui-btn small-btn" onclick="document.getElementById('upload').click()">
+      📂 Upload Excel
+    </button>
+
+    <div id="fileNameLabel" style="font-size:12px;color:#555;"></div>
+
+    <div id="statusText"></div>
+
+  
+    <button id="zoomBtn" class="ui-btn ui-secondary small-btn" style="display:none;">
+      🔍 Zoom Area Tagging
+    </button>
+
+    <div style="display:flex; gap:6px; width:100%;">
+      <input id="searchInput" class="ui-input small-input" placeholder="4 digit IDPEL / Meter" />
+      <button id="searchBtn" class="ui-btn small-btn">Cari</button>
+      <div id="searchResults"></div>
+    </div>
+
+    <!-- <label>
+      <input type="checkbox" id="filterDIJ" checked onchange="applyMarkerFilter()">
+      Marker DIJ
+    </label>
+
+    <label>
+      <input type="checkbox" id="filterDIL" checked onchange="applyMarkerFilter()">
+      Marker DIL
+    </label> -->
+
+    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;">
+      <input type="checkbox" onchange="toggleRoute(this)">
+      Ikuti kompas
+    </label>
+
+    <!-- FILTER DIJ & DIL (SEJAJAR DI ATAS) -->
+      <div class="row filter-row">
+        <label class="chk">
+          <input type="checkbox" id="chkDIJ" checked onchange="applyHariBacaFilter()">
+          Lokasi DIJ
+        </label>
+
+        <label class="chk">
+          <input type="checkbox" id="chkDIL" checked onchange="applyHariBacaFilter()">
+          Lokasi DIL
+        </label>
+      </div>
+
+      <!-- FILTER 1 HARI BACA -->
+      <label class="chk">
+        <input type="checkbox" id="oneDayCheck">
+        1 Hari Baca
+      </label>
+
+      <div class="hari-row">
+        <button onclick="prevHari()">◀</button>
+        <b id="hariBacaLabel">HARI BACA: SEMUA</b>
+        <button onclick="nextHari()">▶</button>
+      </div>
+
+  <hr>
+      <button id="historyToggleBtn" class="ui-btn">
+      📋 Riwayat
+    </button>
+      
+    <button id="downloadBtn" class="ui-btn small-btn">
+      Finish & Download
+    </button>
+    
+  </div>
+</div>
+
+<div id="historyPanel" style="display:none;">
+  <button class="close-history" onclick="closeHistory()">✕</button>
+  <div style="font-weight:bold;margin-bottom:6px;">📋 Riwayat Dibaca</div>
+  <div id="historyList"></div>
+</div>
+
+<div id="floatingControls">
+  <button id="fullMapBtn" class="float-btn">
+    🗺️ Full Map
+  </button>
+</div>
+
+
+<div id="map"></div>
+<div id="detailPanel" class="detail-panel">
+  <div style="display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px;">
+
+  <!-- Kiri -->
+  <b>Detail Pelanggan</b>
+
+  <!-- Tengah -->
+  <label style="display:flex; justify-content:center; align-items:center; gap:6px; font-size:14px; font-weight:600;">
+    <input type="checkbox" onchange="toggleCompare(this)">
+    Bandingkan
+  </label>
+
+  <!-- Kanan -->
+  <button onclick="closeDetail()" style="
+    background:#eee;
+    border:none;
+    border-radius:8px;
+    padding:6px 10px;
+    font-size:16px;
+    cursor:pointer;
+  ">❌</button>
+
+</div>
+
+  <div id="detailSplit" style="display:flex; gap:12px; margin-top:10px;">
+    <div id="detailLeft" style="flex:1; border:1px solid #eee; padding:10px; border-radius:12px;"></div>
+    <div id="detailRight" style="flex:1; border:1px solid #eee; padding:10px; border-radius:12px;"></div>
+  </div>
+</div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+<button id="cancelRouteBtn" onclick="cancelRoute()" style="display:none;">
+  ❌ TUTUP RUTE
+</button>
+
+<div id="toast" class="toast"></div>
+
+<script src="./js/app.js"></script>
+</body>
+</html>
