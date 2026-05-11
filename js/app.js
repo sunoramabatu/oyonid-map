@@ -75,13 +75,56 @@ function getDILLon(row) {
    UTIL — HARI BACA DARI KDDK ACMT
 ====================== */
 function getHariBaca(row) {
-  const kddk = row["KDDK ACMT"];
-  if (!kddk || typeof kddk !== "string") return "";
 
-  // ambil huruf ke-6 dari belakang
-  return kddk.slice(-6, -5).toUpperCase();
+  const kddk = (
+    row["KDDK"] ||
+    row["KDDK ACMT"] ||
+    row["KODEDK"] ||
+    ""
+  ).toString();
+
+  if (!kddk) return "-";
+
+  // huruf ke-6 dari belakang
+  const hb = kddk.slice(-6, -5);
+
+  return hb ? hb.toUpperCase() : "-";
+
 }
 
+function getNoMeter(row){
+
+  return (
+    row.NOMORKWH ||
+    row.NOMET ||
+    row.NO_METER ||
+    row.NOMETER ||
+    "-"
+  );
+
+}
+
+function getMerkMeter(row){
+
+  return (
+    row.MEREKKWH ||
+    row.MERK ||
+    row.MERKMETER ||
+    "-"
+  );
+
+}
+
+function getKDDK(row){
+
+  return (
+    row.KDDK ||
+    row.KODEDK ||
+    row.KODUK ||
+    "-"
+  );
+
+}
 
 function renderMarker(m, map) {
   if (!m || !m.marker) return;
@@ -91,7 +134,7 @@ function renderMarker(m, map) {
   // kalau sudah ada di map, jangan di-add lagi
   if (map.hasLayer(marker)) return;
 
-  marker.addTo(map);
+  clusterGroup.addLayer(marker);
 }
 
 
@@ -136,7 +179,7 @@ const map = L.map("map", {
   zoomControl: false,
   touchRotate: true,
   rotateControl: true,
-  maxZoom: 21,
+  maxZoom: 19,
 }).setView([-7.974155,112.6181065], 12);
 
 /* ======================
@@ -146,8 +189,8 @@ const map = L.map("map", {
 const clusterGroup = L.markerClusterGroup({
 
   chunkedLoading: true,
-  chunkInterval: 100,
-  chunkDelay: 25,
+  chunkInterval: 80,
+  chunkDelay: 20,
 
   removeOutsideVisibleBounds: true,
 
@@ -155,7 +198,11 @@ const clusterGroup = L.markerClusterGroup({
 
   showCoverageOnHover: false,
 
-  maxClusterRadius: 50
+  zoomToBoundsOnClick: true,
+
+  disableClusteringAtZoom: 17,
+
+  maxClusterRadius: 18
 
 });
 
@@ -172,16 +219,15 @@ function addMarkerToMap(marker) {
 }
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 21
+  maxZoom: 19
 }).addTo(map);
 
 /* ======================
    AUTO VIEWPORT RENDER
 ====================== */
 
-map.on("moveend zoomend", () => {
-  renderVisibleMarkers();
-});
+map.on("moveend", renderVisibleMarkers);
+map.on("zoomend", renderVisibleMarkers);
 
 
 /* ======================
@@ -358,6 +404,7 @@ function showNormalMarkers() {
 ====================== */
 
 function renderVisibleMarkers() {
+  if (window.isCompareMode) return;
 
   const bounds = map.getBounds();
 
@@ -561,7 +608,7 @@ searchIndex = [];
 
             searchIndex.push({
         idpel: String(row.IDPEL||"").replace(/\D/g,""),
-        meter: String(row["NOMOR METER"]||"").replace(/\D/g,""),
+        meter: String(getNoMeter(row)||"").replace(/\D/g,""),
         marker: markerDIJ,
         row
       });
@@ -630,6 +677,10 @@ if (!filterHariBacaAktif) {
 updateHariBacaLabel();
 applyHariBacaFilter();
 renderVisibleMarkers();
+
+setTimeout(() => {
+  renderVisibleMarkers();
+}, 200);
 }     // ← TUTUP function buildMarkers
 
 /* ======================
@@ -677,45 +728,151 @@ function toggleRoute(cb) {
 ====================== */
 searchBtn.onclick = () => {
 
-  const key = searchInput.value.trim();
-  if(key.length < 4) {
+  const key =
+    searchInput.value.trim();
+
+  if(key.length < 4){
+
     showToast("Masukkan minimal 4 digit");
     return;
+
   }
 
-  if (searchIndex.length === 0) {
+  if(searchIndex.length === 0){
+
     showToast("Data belum siap, upload dulu");
     return;
+
   }
 
-  const found = searchIndex.find(o =>
-    o.idpel.endsWith(key) || o.meter.endsWith(key)
+  // MULTI RESULT
+  const results = searchIndex.filter(o =>
+
+    o.idpel.endsWith(key) ||
+    o.meter.endsWith(key)
+
   );
 
-  if(!found) {
+  // TIDAK ADA
+  if(!results.length){
+
     showToast("Tidak ditemukan");
     return;
+
   }
 
-  addMarkerToMap(found.marker);
-  clusterGroup.addLayer(found.marker);
-  map.setView(found.marker.getLatLng(), 19, { animate: true });
+  // SATU HASIL
+  if(results.length === 1){
 
-  highlightMarker(found.marker);
-  showLabel(found.marker);
-  openDetail(found.row);
+    focusSearchResult(results[0]);
+    return;
 
-  // 🔥 AUTO MINIMIZE MENU
-  const uiBar = document.getElementById("uiBar");
-  const toggleBtn = document.getElementById("toggleBtn");
-
-  if (uiBar && !uiBar.classList.contains("minimized")) {
-    uiBar.classList.add("minimized");
-    if (toggleBtn) toggleBtn.innerText = "➕";
   }
+
+  // MULTI RESULT UI
+  showSearchResults(results);
+
 };
 
+function focusSearchResult(found){
 
+  addMarkerToMap(found.marker);
+
+  clusterGroup.addLayer(found.marker);
+
+  map.setView(
+    found.marker.getLatLng(),
+    17,
+    { animate:true }
+  );
+
+  highlightMarker(found.marker);
+
+  showLabel(found.marker);
+
+  openDetail(found.row);
+
+  // AUTO MINIMIZE
+  const uiBar =
+    document.getElementById("uiBar");
+
+  const toggleBtn =
+    document.getElementById("toggleBtn");
+
+  if(
+    uiBar &&
+    !uiBar.classList.contains("minimized")
+  ){
+
+    uiBar.classList.add("minimized");
+
+    if(toggleBtn)
+      toggleBtn.innerText = "➕";
+
+  }
+
+}
+
+function showSearchResults(results){
+
+  let html = `
+
+    <div id="searchPopup">
+
+      <div class="searchPopupTitle">
+        Pilih Data
+      </div>
+
+  `;
+
+  results.forEach((r, i) => {
+
+    html += `
+
+      <div
+        class="searchResultItem"
+        onclick="selectSearchResult(${i})"
+      >
+
+        <strong>
+          ${r.row.NAMA || "-"}
+        </strong><br>
+
+        IDPEL:
+        ${r.row.IDPEL || "-"}<br>
+
+        NOMET:
+        ${getNoMeter(r.row)}
+
+      </div>
+
+    `;
+
+  });
+
+  html += `</div>`;
+
+  window.searchResultsTemp = results;
+
+  document.body.insertAdjacentHTML(
+    "beforeend",
+    html
+  );
+
+}
+
+function selectSearchResult(index){
+
+  const found =
+    window.searchResultsTemp[index];
+
+  focusSearchResult(found);
+
+  document
+    .getElementById("searchPopup")
+    ?.remove();
+
+}
 
 /* ======================
    ZOOM ALL
@@ -743,7 +900,9 @@ function openDetail(r){
   const left = document.getElementById("detailLeft");
   const right = document.getElementById("detailRight");
 
-  // simpan IDPEL yang sedang dibuka (global state kecil)
+  /* FORCE SHOW MARKERS FOR COMPARE */
+
+    // simpan IDPEL yang sedang dibuka (global state kecil)
   window.currentCompareIDPEL = r.IDPEL;
   
   const cardHTML = (label, lat, lon, isDIL = false) => `
@@ -754,17 +913,17 @@ function openDetail(r){
 
     <h3 style="margin:4px 0">${r.NAMA}</h3>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <span>🔢 NOMET: ${r["NOMOR METER"]}</span>
+      <span>🔢 NOMET: ${getNoMeter(r)}</span>
       <button 
         style="background:#2563eb;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;"
-        onclick="copyNomet('${r["NOMOR METER"]}')">
+        onclick="copyNomet('${getNoMeter(r)}')">
         Copy Nomet
       </button>
       
     </div>
     
     <div>⚡ DAYA: ${r.DAYA}</div>
-    <div>🔧 MERK: ${r["MERK METER"]}</div>
+    <div>🔧 MERK: ${getMerkMeter(r)}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
         <span>📟 IDPEL: ${r.IDPEL}</span>
 
@@ -948,12 +1107,18 @@ function toggleCompare(checkbox) {
     // tampilkan hanya marker tsb
     activeMarkers.forEach(m => {
       clusterGroup.addLayer(m.marker);
+      setTimeout(() => {
+      renderVisibleMarkers();
+    }, 100);
     });
 
     // zoom ke 2 marker
     if (activeMarkers.length) {
       const group = L.featureGroup(activeMarkers.map(m => m.marker));
-      map.fitBounds(group.getBounds(), { padding: [60, 60] });
+      map.flyToBounds(group.getBounds(), {
+        padding: [80, 80],
+        duration: 0.5
+      });
     }
 
     showToast("🔍 Mode bandingkan aktif");
@@ -1092,18 +1257,46 @@ function renderHistory() {
   }
 
   el.innerHTML = history.map((item, index) => `
-    <div style="border-bottom:1px solid #eee;padding:8px;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <strong>${item.row.NAMA}</strong><br>
-        NOMET: ${item.row["NOMOR METER"]}<br>
-        <small>${item.time}</small>
-      </div>
-      <button onclick="undoHistory(${index})"
-        style="background:#2563eb;color:white;border:none;padding:6px 10px;border-radius:8px;font-size:12px;">
-        Undo
-      </button>
+
+  <div style="
+    border-bottom:1px solid #eee;
+    padding:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  ">
+
+    <div>
+
+      <strong>${item.row.NAMA || "-"}</strong><br>
+
+      NOMET: ${getNoMeter(item.row)}<br>
+
+      MERK: ${getMerkMeter(item.row)}<br>
+
+      HARI BACA: ${getHariBaca(item.row)}<br>
+
+      <small>${item.time}</small>
+
     </div>
-  `).join("");
+
+    <button
+      onclick="undoHistory(${index})"
+      style="
+        background:#2563eb;
+        color:white;
+        border:none;
+        padding:6px 10px;
+        border-radius:8px;
+        font-size:12px;
+      "
+    >
+      Undo
+    </button>
+
+  </div>
+
+`).join("");
 }
 
 
@@ -1130,7 +1323,7 @@ function undoHistory(index) {
   buildMarkers();
 
   // 🔁 BARU SET FILTER HARI BACA
-  const hariUndo = (item.row["HARI BACA ACMT"] || "").toUpperCase();
+  const hariUndo = getHariBaca(item.row);
   const idx = daftarHariBaca.indexOf(hariUndo);
 
   if (idx !== -1) {
@@ -1231,14 +1424,67 @@ downloadBtn.onclick = () => {
 
   const filename = `RBM_${kodePetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
-  // Generate Excel
-  const ws = XLSX.utils.json_to_sheet(workingRows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "RBM Update");
+  // ===== CLEAN EXPORT ENGINE =====
 
-  XLSX.writeFile(wb, filename);
+const cleanRows = workingRows.map(r => ({
 
-  showToast(`✅ RBM berhasil diunduh<br><b>${filename}</b><br>Selamat beristirahat, wahai pejuang nafkah.<br>Semoga setiap lelahmu bernilai ibadah.`);
+  NO: r.NO || "",
+
+  IDPEL: r.IDPEL || "",
+
+  NAMA: r.NAMA || "",
+
+  NIK: r.NIK || "",
+
+  KDDK:
+    r.KDDK ||
+    r["KDDK ACMT"] ||
+    "",
+
+  MEREKKWH:
+    r.MEREKKWH ||
+    r.MERK ||
+    "",
+
+  NOMORKWH:
+    r.NOMORKWH ||
+    r["NOMOR METER"] ||
+    "",
+
+  DAYA: r.DAYA || "",
+
+  ALAMAT: r.ALAMAT || "",
+
+  "LAT DIJ": getDIJLat(r),
+
+  "LON DIJ": getDIJLon(r),
+
+  "LAT DIL": getDILLat(r),
+
+  "LON DIL": getDILLon(r)
+
+}));
+
+// Generate Excel
+const ws =
+  XLSX.utils.json_to_sheet(cleanRows);
+
+const wb =
+  XLSX.utils.book_new();
+
+wb.Props = {
+  Title: "OYONID MAP EXPORT"
+};
+
+XLSX.utils.book_append_sheet(
+  wb,
+  ws,
+  "RBM Update"
+);
+
+XLSX.writeFile(wb, filename, {
+  compression: true
+});
 };
 
 
