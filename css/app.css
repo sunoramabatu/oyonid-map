@@ -476,6 +476,45 @@
     .close-history:hover {
       background: rgba(0,0,0,0.85);
     }
+
+    #searchResults{
+
+      position:absolute;
+      top:180px;
+      left:20px;
+      width:240px;
+      max-height:260px;
+
+      overflow-y:auto;
+
+      background:white;
+
+      border-radius:12px;
+
+      box-shadow:0 6px 18px rgba(0,0,0,.18);
+
+      z-index:9999;
+
+    }
+
+    .search-item{
+
+      padding:10px;
+
+      border-bottom:1px solid #eee;
+
+      cursor:pointer;
+
+    }
+
+    .search-item:hover{
+
+      background:#f3f4f6;
+
+    }
   
+
+
+
 
 
