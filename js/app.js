@@ -607,11 +607,20 @@ searchIndex = [];
       });
 
             searchIndex.push({
-        idpel: String(row.IDPEL||"").replace(/\D/g,""),
-        meter: String(getNoMeter(row)||"").replace(/\D/g,""),
-        marker: markerDIJ,
-        row
-      });
+
+          idpel: String(
+            row.IDPEL || ""
+          ).replace(/\D/g,""),
+
+          meter: String(
+            getNoMeter(row) || ""
+          ).replace(/\D/g,""),
+
+          marker: markerDIJ,
+
+          row
+
+        });
       
     }
     
