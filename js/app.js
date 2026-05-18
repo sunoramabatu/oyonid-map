@@ -733,12 +733,33 @@ function toggleRoute(cb) {
 }
 
 /* ======================
-   SEARCH
+   SEARCH ENGINE V2
 ====================== */
-searchBtn.onclick = () => {
 
-  const key =
-    searchInput.value.trim();
+searchBtn.onclick = runSearch;
+
+searchInput.addEventListener("keydown", e => {
+
+  if(e.key === "Enter"){
+    runSearch();
+  }
+
+});
+
+function runSearch(){
+
+  // HAPUS POPUP LAMA
+  document
+    .getElementById("searchPopup")
+    ?.remove();
+
+  const key = searchInput.value
+    .trim()
+    .replace(/\D/g,"");
+
+  // DEBUG
+  console.log("SEARCH:", key);
+  console.log("INDEX:", searchIndex);
 
   if(key.length < 4){
 
@@ -747,23 +768,40 @@ searchBtn.onclick = () => {
 
   }
 
-  if(searchIndex.length === 0){
+  if(!searchIndex.length){
 
-    showToast("Data belum siap, upload dulu");
+    showToast("Data belum siap");
     return;
 
   }
 
-  // MULTI RESULT
-  const results = searchIndex.filter(o =>
+  // SEARCH FLEXIBLE
+  const results = searchIndex.filter(o => {
 
-    o.idpel.endsWith(key) ||
-    o.meter.endsWith(key)
+      // kalau 4 digit → cocokkan belakang
+      if(key.length <= 4){
 
-  );
+        return (
+          o.idpel.endsWith(key) ||
+          o.meter.endsWith(key)
+        );
+
+      }
+
+      // kalau lebih panjang → flexible
+      return (
+
+        o.idpel.includes(key) ||
+        o.meter.includes(key)
+
+      );
+
+    });
+
+  console.log("RESULTS:", results);
 
   // TIDAK ADA
-  if(!results.length){
+  if(results.length === 0){
 
     showToast("Tidak ditemukan");
     return;
@@ -778,28 +816,35 @@ searchBtn.onclick = () => {
 
   }
 
-  // MULTI RESULT UI
+  // MULTI RESULT
   showSearchResults(results);
 
-};
+}
 
 function focusSearchResult(found){
 
-  addMarkerToMap(found.marker);
+  if(!found || !found.marker) return;
 
+  // pastikan marker tampil
   clusterGroup.addLayer(found.marker);
 
-  map.setView(
+  map.flyTo(
     found.marker.getLatLng(),
     17,
-    { animate:true }
+    {
+      duration: 0.5
+    }
   );
 
-  highlightMarker(found.marker);
+  setTimeout(() => {
 
-  showLabel(found.marker);
+    found.marker.openTooltip();
 
-  openDetail(found.row);
+    highlightMarker(found.marker);
+
+    openDetail(found.row);
+
+  }, 400);
 
   // AUTO MINIMIZE
   const uiBar =
@@ -815,8 +860,9 @@ function focusSearchResult(found){
 
     uiBar.classList.add("minimized");
 
-    if(toggleBtn)
+    if(toggleBtn){
       toggleBtn.innerText = "➕";
+    }
 
   }
 
@@ -824,62 +870,58 @@ function focusSearchResult(found){
 
 function showSearchResults(results){
 
-  let html = `
+  document
+    .getElementById("searchPopup")
+    ?.remove();
 
-    <div id="searchPopup">
+  const popup =
+    document.createElement("div");
 
-      <div class="searchPopupTitle">
-        Pilih Data
-      </div>
+  popup.id = "searchPopup";
+
+  popup.innerHTML = `
+
+    <div class="searchPopupTitle">
+      Pilih Pelanggan
+    </div>
 
   `;
 
   results.forEach((r, i) => {
 
-    html += `
+    const div =
+      document.createElement("div");
 
-      <div
-        class="searchResultItem"
-        onclick="selectSearchResult(${i})"
-      >
+    div.className =
+      "searchResultItem";
 
-        <strong>
-          ${r.row.NAMA || "-"}
-        </strong><br>
+    div.innerHTML = `
 
-        IDPEL:
-        ${r.row.IDPEL || "-"}<br>
+      <strong>
+        ${r.row.NAMA || "-"}
+      </strong><br>
 
-        NOMET:
-        ${getNoMeter(r.row)}
+      IDPEL:
+      ${r.row.IDPEL || "-"}<br>
 
-      </div>
+      NOMET:
+      ${getNoMeter(r.row)}
 
     `;
 
+    div.onclick = () => {
+
+      focusSearchResult(r);
+
+      popup.remove();
+
+    };
+
+    popup.appendChild(div);
+
   });
 
-  html += `</div>`;
-
-  window.searchResultsTemp = results;
-
-  document.body.insertAdjacentHTML(
-    "beforeend",
-    html
-  );
-
-}
-
-function selectSearchResult(index){
-
-  const found =
-    window.searchResultsTemp[index];
-
-  focusSearchResult(found);
-
-  document
-    .getElementById("searchPopup")
-    ?.remove();
+  document.body.appendChild(popup);
 
 }
 
@@ -920,39 +962,176 @@ function openDetail(r){
       ${label}
     </div>
 
-    <h3 style="margin:4px 0">${r.NAMA}</h3>
+    <div style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+">
+
+  <h3 style="margin:4px 0;flex:1">
+    ${r.NAMA || "-"}
+  </h3>
+
+  <button
+    style="
+      background:#111827;
+      color:white;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+      white-space:nowrap;
+    "
+    onclick="copyText('${(r.NAMA || "").replace(/'/g,"\\'")}','Nama')">
+
+    Copy Nama
+
+  </button>
+
+</div>
     <div style="display:flex;align-items:center;justify-content:space-between;">
-      <span>🔢 NOMET: ${getNoMeter(r)}</span>
-      <button 
-        style="background:#2563eb;color:white;border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;"
-        onclick="copyNomet('${getNoMeter(r)}')">
-        Copy Nomet
-      </button>
-      
-    </div>
-    
-    <div>⚡ DAYA: ${r.DAYA}</div>
-    <div>🔧 MERK: ${getMerkMeter(r)}</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
-        <span>📟 IDPEL: ${r.IDPEL}</span>
+  <span>🔢 NOMET: ${getNoMeter(r)}</span>
 
-        <button
-            style="
-            background:#059669;
-            color:white;
-            border:none;
-            padding:4px 8px;
-            border-radius:6px;
-            font-size:11px;
-            cursor:pointer;
-            "
-            onclick="copyIDPEL('${r.IDPEL}')">
+  <button
+    style="
+      background:#2563eb;
+      color:white;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+    "
+    onclick="copyText('${getNoMeter(r)}','Nomor Meter')">
 
-            Copy IDPEL
-        </button>
-        </div>
-    <div>📅 HARI BACA: ${getHariBaca(r)}</div>
-    <div>🧭 ALAMAT: ${r["ALAMAT"]}</div>
+    Copy NOMET
+
+  </button>
+</div>
+
+<div>⚡ DAYA: ${r.DAYA || "-"}</div>
+
+<div>🔧 MERK: ${getMerkMeter(r)}</div>
+
+<div style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:4px;
+">
+
+  <span>📟 IDPEL: ${r.IDPEL || "-"}</span>
+
+  <button
+    style="
+      background:#059669;
+      color:white;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+    "
+    onclick="copyText('${r.IDPEL}','IDPEL')">
+
+    Copy IDPEL
+
+  </button>
+
+</div>
+
+<div style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:4px;
+">
+
+  <span>🪪 NIK: ${r.NIK || "-"}</span>
+
+  <button
+    style="
+      background:#7c3aed;
+      color:white;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+    "
+    onclick="copyText('${r.NIK || ""}','NIK')">
+
+    Copy NIK
+
+  </button>
+
+</div>
+
+<div style="
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:4px;
+">
+
+  <span>📱 NO HP: ${r.NO_HP || r.NOHP || "-"}</span>
+
+  <button
+    style="
+      background:#ea580c;
+      color:white;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+    "
+    onclick="copyText('${r.NO_HP || r.NOHP || ""}','Nomor HP')">
+
+    Copy NO HP
+
+  </button>
+
+</div>
+
+<div>📅 HARI BACA: ${getHariBaca(r)}</div>
+
+<div style="
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:4px;
+">
+
+  <span style="flex:1">
+    🧭 ALAMAT:
+    ${r.ALAMAT || "-"}
+  </span>
+
+  <button
+    style="
+      background:#0f766e;
+      color:white;
+      border:none;
+      padding:4px 8px;
+      border-radius:6px;
+      font-size:11px;
+      cursor:pointer;
+      white-space:nowrap;
+    "
+    onclick="copyText(
+      \`${(r.ALAMAT || "").replace(/`/g,"")}\`,
+      'Alamat'
+    )">
+
+    Copy ALAMAT
+
+  </button>
+
+</div>
 
     <div style="margin-top:10px;display:flex;gap:6px;">
       ${
@@ -1399,6 +1578,27 @@ function copyIDPEL(idpel){
   navigator.clipboard.writeText(idpel)
     .then(() => showToast("📋 IDPEL disalin"))
     .catch(() => showToast("❌ Gagal menyalin IDPEL"));
+}
+
+/* ======================
+   COPY ENGINE
+====================== */
+
+function copyText(text, label = "Data") {
+
+  if (!text || text === "-") {
+    showToast(`❌ ${label} kosong`);
+    return;
+  }
+
+  navigator.clipboard.writeText(String(text))
+    .then(() => {
+      showToast(`📋 ${label} berhasil disalin`);
+    })
+    .catch(() => {
+      showToast(`❌ Gagal menyalin ${label}`);
+    });
+
 }
 
 /* ======================
