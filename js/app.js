@@ -17,6 +17,7 @@ let history = JSON.parse(
 
 let originalRows = [];
 let workingRows = [];
+let originalHeaders = [];
 
 let filterHariBacaAktif = false;
 let daftarHariBaca = [];
@@ -149,6 +150,7 @@ function getNoMeter(row){
 
   return (
     row.NOMORKWH ||
+    row.NOMORMETER ||
     row.NOMET ||
     row.NO_METER ||
     row.NOMETER ||
@@ -161,8 +163,10 @@ function getMerkMeter(row){
 
   return (
     row.MEREKKWH ||
+    row.MERKKWH ||
     row.MERK ||
     row.MERKMETER ||
+    row.MEREKMETER ||
     "-"
   );
 
@@ -171,6 +175,7 @@ function getMerkMeter(row){
 function getKDDK(row){
 
   return (
+    row.KDDK ||
     row.KDDK ||
     row.KODEDK ||
     row.KODUK ||
@@ -334,9 +339,24 @@ upload.onchange = e => {
   reader.onload = evt => {
     const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
     const sheet = wb.Sheets[wb.SheetNames[0]];
-    originalRows = XLSX.utils.sheet_to_json(sheet);
 
-    workingRows = structuredClone(originalRows);
+// Simpan seluruh nama kolom asli dan urutannya
+const rawExcel = XLSX.utils.sheet_to_json(sheet, {
+  header: 1,
+  defval: ""
+});
+
+originalHeaders = rawExcel.length > 0
+  ? rawExcel[0]
+  : [];
+
+// Baca data seperti sebelumnya
+originalRows = XLSX.utils.sheet_to_json(sheet, {
+  defval: ""
+});
+
+// Salin data untuk proses kerja aplikasi
+workingRows = structuredClone(originalRows);
     saveState();
 
     buildMarkers();
@@ -1789,37 +1809,44 @@ downloadBtn.onclick = () => {
   const filename =
     `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
-  // ==================================================
-  // EXPORT SEMUA KOLOM ASLI
-  // ==================================================
+  // ===== EXPORT SEMUA KOLOM ASLI =====
 
-  // Salin seluruh kolom asli tanpa membuang data apa pun
-  const exportRows = workingRows.map(row => ({
-    ...row
-  }));
-
-  // Buat worksheet dari seluruh kolom Excel asli
-  const ws = XLSX.utils.json_to_sheet(exportRows);
-
-  // Buat workbook baru
-  const wb = XLSX.utils.book_new();
-
-  wb.Props = {
-    Title: "OYONID MAP EXPORT"
-  };
-
-  XLSX.utils.book_append_sheet(
-    wb,
-    ws,
-    "RBM Update"
-  );
-
-  // Download
-  XLSX.writeFile(wb, filename, {
-    compression: true
+// Pastikan setiap baris mengikuti urutan kolom Excel asli
+const exportData = workingRows.map(row => {
+  return originalHeaders.map(header => {
+    return row[header] ?? "";
   });
+});
 
-  showToast("✅ Semua kolom berhasil disimpan");
+// Header asli tetap berada di baris pertama
+const worksheetData = [
+  originalHeaders,
+  ...exportData
+];
+
+// Buat worksheet berdasarkan array,
+// bukan json_to_sheet dengan kolom pilihan
+const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+
+// Buat workbook
+const wb = XLSX.utils.book_new();
+
+wb.Props = {
+  Title: "OYONID MAP EXPORT"
+};
+
+XLSX.utils.book_append_sheet(
+  wb,
+  ws,
+  "RBM Update"
+);
+
+// Download file
+XLSX.writeFile(wb, filename, {
+  compression: true
+});
+
+showToast("✅ Semua kolom dan isi berhasil disimpan");
 };
 
 /* ======================
