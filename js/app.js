@@ -1783,67 +1783,22 @@ const filename = `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
   // ===== CLEAN EXPORT ENGINE =====
 
-const cleanRows = workingRows.map(r => ({
+// ===== EXPORT SEMUA KOLOM ASLI =====
+// Jangan membuat kolom manual agar kolom Excel tidak hilang.
 
-  NO: r.NO || "",
+const cleanRows = workingRows.map(r => {
 
-  IDPEL: r.IDPEL || "",
+  // Salin seluruh kolom asli dari Excel
+  const row = { ...r };
 
-  NAMA: r.NAMA || "",
+  // Perbarui hanya kolom GPS yang memang diubah aplikasi
+  row["LAT DIJ"] = getDIJLat(r);
+  row["LON DIJ"] = getDIJLon(r);
+  row["LAT DIL"] = getDILLat(r);
+  row["LON DIL"] = getDILLon(r);
 
-  NIK: r.NIK || "",
-
-  KDDK:
-    r.KDDK ||
-    r["KDDK ACMT"] ||
-    "",
-
-  MEREKKWH:
-    r.MEREKKWH ||
-    r.MERK ||
-    "",
-
-  NOMORKWH:
-    r.NOMORKWH ||
-    r["NOMOR METER"] ||
-    "",
-
-  DAYA: r.DAYA || "",
-
-  ALAMAT: r.ALAMAT || "",
-
-  "LAT DIJ": getDIJLat(r),
-
-  "LON DIJ": getDIJLon(r),
-
-  "LAT DIL": getDILLat(r),
-
-  "LON DIL": getDILLon(r)
-
-}));
-
-// Generate Excel
-const ws =
-  XLSX.utils.json_to_sheet(cleanRows);
-
-const wb =
-  XLSX.utils.book_new();
-
-wb.Props = {
-  Title: "OYONID MAP EXPORT"
-};
-
-XLSX.utils.book_append_sheet(
-  wb,
-  ws,
-  "RBM Update"
-);
-
-XLSX.writeFile(wb, filename, {
-  compression: true
+  return row;
 });
-};
-
 
 /* ======================
    GPS
