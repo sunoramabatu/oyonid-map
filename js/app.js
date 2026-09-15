@@ -1759,97 +1759,68 @@ function showToast(msg){
 /* ======================
    FINISH DAN SIMPAN RBM UPDATE
 ====================== */
+
 downloadBtn.onclick = () => {
   if (workingRows.length === 0) {
     showToast("⚠️ Tidak ada data untuk diunduh");
     return;
   }
 
-  // Ambil KODE PETUGAS dari baris pertama
   // Ambil nama PETUGAS dari baris pertama
-const namaPetugas = (
-  workingRows[0]["PETUGAS"] ||
-  workingRows[0]["Petugas"] ||
-  workingRows[0]["petugas"] ||
-  "UNKNOWN"
-)
-  .toString()
-  .trim()
-  .replace(/[\\/:*?"<>|]/g, "")
-  .replace(/\s+/g, "_");
+  const namaPetugas = (
+    workingRows[0]["PETUGAS"] ||
+    workingRows[0]["Petugas"] ||
+    workingRows[0]["petugas"] ||
+    workingRows[0]["KODE PETUGAS"] ||
+    "UNKNOWN"
+  )
+    .toString()
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "")
+    .replace(/\s+/g, "_");
 
-// Buat timestamp
-const now = new Date();
-const dd = String(now.getDate()).padStart(2, "0");
-const mm = String(now.getMonth() + 1).padStart(2, "0");
-const hh = String(now.getHours()).padStart(2, "0");
-const min = String(now.getMinutes()).padStart(2, "0");
+  // Buat timestamp
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
 
-const filename = `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
+  const filename =
+    `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
-  // ===== CLEAN EXPORT ENGINE =====
+  // ==================================================
+  // EXPORT SEMUA KOLOM ASLI
+  // ==================================================
 
-const cleanRows = workingRows.map(r => ({
+  // Salin seluruh kolom asli tanpa membuang data apa pun
+  const exportRows = workingRows.map(row => ({
+    ...row
+  }));
 
-  NO: r.NO || "",
+  // Buat worksheet dari seluruh kolom Excel asli
+  const ws = XLSX.utils.json_to_sheet(exportRows);
 
-  IDPEL: r.IDPEL || "",
+  // Buat workbook baru
+  const wb = XLSX.utils.book_new();
 
-  NAMA: r.NAMA || "",
+  wb.Props = {
+    Title: "OYONID MAP EXPORT"
+  };
 
-  NIK: r.NIK || "",
+  XLSX.utils.book_append_sheet(
+    wb,
+    ws,
+    "RBM Update"
+  );
 
-  KDDK:
-    r.KDDK ||
-    r["KDDK ACMT"] ||
-    "",
+  // Download
+  XLSX.writeFile(wb, filename, {
+    compression: true
+  });
 
-  MEREKKWH:
-    r.MEREKKWH ||
-    r.MERK ||
-    "",
-
-  NOMORKWH:
-    r.NOMORKWH ||
-    r["NOMOR METER"] ||
-    "",
-
-  DAYA: r.DAYA || "",
-
-  ALAMAT: r.ALAMAT || "",
-
-  "LAT DIJ": getDIJLat(r),
-
-  "LON DIJ": getDIJLon(r),
-
-  "LAT DIL": getDILLat(r),
-
-  "LON DIL": getDILLon(r)
-
-}));
-
-// Generate Excel
-const ws =
-  XLSX.utils.json_to_sheet(cleanRows);
-
-const wb =
-  XLSX.utils.book_new();
-
-wb.Props = {
-  Title: "OYONID MAP EXPORT"
+  showToast("✅ Semua kolom berhasil disimpan");
 };
-
-XLSX.utils.book_append_sheet(
-  wb,
-  ws,
-  "RBM Update"
-);
-
-XLSX.writeFile(wb, filename, {
-  compression: true
-});
-};
-
 
 /* ======================
    GPS
