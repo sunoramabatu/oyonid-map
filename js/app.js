@@ -75,21 +75,46 @@ function getDILLon(row) {
    UTIL — HARI BACA DARI KDDK ACMT
 ====================== */
 function getHariBaca(row) {
-
-  const kddk = (
-    row["KDDK"] ||
+  const kddk = String(
     row["KDDK ACMT"] ||
+    row["KDDK"] ||
     row["KODEDK"] ||
     ""
-  ).toString();
+  ).trim();
 
   if (!kddk) return "-";
 
-  // huruf ke-6 dari belakang
-  const hb = kddk.slice(-6, -5);
+  // Contoh:
+  // CMAWHNQ07800
+  // Huruf HARI BACA = Q
+  // Posisi 6 karakter dari belakang
+  const hari = kddk.slice(-6, -5);
 
-  return hb ? hb.toUpperCase() : "-";
+  return hari ? hari.toUpperCase() : "-";
+}
 
+/* ======================
+   UTIL — URUTAN BACA DARI KDDK ACMT
+====================== */
+
+function getUrutanBaca(row) {
+  const kddk = String(
+    row["KDDK ACMT"] ||
+    row["KDDK"] ||
+    row["KODEDK"] ||
+    ""
+  ).trim();
+
+  if (!kddk) return null;
+
+  // Contoh CMAWHNQ07800 → 078 → 78
+  const match = kddk.match(/[A-Z](\d{3})\d{2}$/i);
+
+  if (!match) return null;
+
+  const urutan = Number(match[1]);
+
+  return Number.isFinite(urutan) ? urutan : null;
 }
 
 function getNoMeter(row){
@@ -471,26 +496,53 @@ function renderVisibleMarkers() {
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(workingRows));
 }
-/* ======================
-   TAMPILKAN marker dij/Lokasi DIL saja
-====================== */
-function applyMarkerFilter() {}
-/* ======================
-function applyHariBacaFilter() {
-  if (!filterHariBacaAktif) {
-    applyMarkerFilter();
-    return;
-  }
 
-  const hariAktif = daftarHariBaca[indexHariBaca];
+/* ======================
+   FILTER MARKER DIJ / DIL / HARI BACA
+====================== */
+
+function applyMarkerFilter() {
+  if (!markers || markers.length === 0) return;
+
+  const showDIJ =
+    document.getElementById("chkDIJ")?.checked ?? true;
+
+  const showDIL =
+    document.getElementById("chkDIL")?.checked ?? true;
+
+  const hariAktif =
+    filterHariBacaAktif
+      ? daftarHariBaca[indexHariBaca]
+      : null;
 
   markers.forEach(m => {
-    const hariRow = (m.row["HARI BACA ACMT"] || "").toUpperCase();
+    if (!m || !m.marker) return;
 
-    if (hariRow === hariAktif) {
+    let visible = true;
+
+    // FILTER JENIS MARKER
+    if (m.type === "DIJ" && !showDIJ) {
+      visible = false;
+    }
+
+    if (m.type === "DIL" && !showDIL) {
+      visible = false;
+    }
+
+    // FILTER HARI BACA
+    if (visible && filterHariBacaAktif) {
+      const hariRow = getHariBaca(m.row);
+
+      if (hariRow !== hariAktif) {
+        visible = false;
+      }
+    }
+
+    // Tambahkan atau hapus marker dari cluster
+    if (visible) {
       addMarkerToMap(m.marker);
     } else {
-      if (map.hasLayer(m.marker)) {
+      if (clusterGroup.hasLayer(m.marker)) {
         clusterGroup.removeLayer(m.marker);
       }
     }
@@ -498,8 +550,13 @@ function applyHariBacaFilter() {
 
   updateHariBacaLabel();
 }
-  ====================== */
+/* ======================
+   FILTER SATU HARI BACA
+====================== */
 
+function applyHariBacaFilter() {
+  applyMarkerFilter();
+}
 function nextHari(){
   if (!filterHariBacaAktif) return;
   if (!daftarHariBaca.length) return;
@@ -537,21 +594,40 @@ function updateHariBacaLabel() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
+
   const cb = document.getElementById("oneDayCheck");
-  if (!cb) return;
 
-  cb.onchange = e => {
-    filterHariBacaAktif = e.target.checked;
+  if (cb) {
+    cb.onchange = e => {
+      filterHariBacaAktif = e.target.checked;
 
-    if (filterHariBacaAktif && daftarHariBaca.length === 0) {
-      showToast("⚠️ Data hari baca kosong");
-      cb.checked = false;
-      filterHariBacaAktif = false;
-      return;
-    }
+      if (filterHariBacaAktif && daftarHariBaca.length === 0) {
+        showToast("⚠️ Data hari baca kosong");
 
-    applyHariBacaFilter();
-  };
+        cb.checked = false;
+        filterHariBacaAktif = false;
+
+        applyMarkerFilter();
+        return;
+      }
+
+      indexHariBaca = 0;
+
+      applyHariBacaFilter();
+    };
+  }
+
+  const chkDIJ = document.getElementById("chkDIJ");
+  const chkDIL = document.getElementById("chkDIL");
+
+  if (chkDIJ) {
+    chkDIJ.addEventListener("change", applyMarkerFilter);
+  }
+
+  if (chkDIL) {
+    chkDIL.addEventListener("change", applyMarkerFilter);
+  }
+
 });
 
 
@@ -821,12 +897,14 @@ function runSearch(){
 
 }
 
-function focusSearchResult(found){
+function focusSearchResult(found) {
+  if (!found || !found.marker) return;
 
-  if(!found || !found.marker) return;
+  if (!clusterGroup.hasLayer(found.marker)) {
+    clusterGroup.addLayer(found.marker);
+  }
 
-  // pastikan marker tampil
-  clusterGroup.addLayer(found.marker);
+  found.marker.bringToFront?.();
 
   map.flyTo(
     found.marker.getLatLng(),
@@ -1584,21 +1662,61 @@ function copyIDPEL(idpel){
    COPY ENGINE
 ====================== */
 
-function copyText(text, label = "Data") {
+/* ======================
+   COPY ENGINE AMAN
+====================== */
 
-  if (!text || text === "-") {
+function copyText(text, label = "Data") {
+  const value = String(text ?? "").trim();
+
+  if (!value || value === "-") {
     showToast(`❌ ${label} kosong`);
     return;
   }
 
-  navigator.clipboard.writeText(String(text))
-    .then(() => {
-      showToast(`📋 ${label} berhasil disalin`);
-    })
-    .catch(() => {
-      showToast(`❌ Gagal menyalin ${label}`);
-    });
+  // Clipboard API utama
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(value)
+      .then(() => {
+        showToast(`📋 ${label} berhasil disalin`);
+      })
+      .catch(() => {
+        fallbackCopyText(value, label);
+      });
 
+    return;
+  }
+
+  // Fallback untuk localhost/browser lama
+  fallbackCopyText(value, label);
+}
+
+
+function fallbackCopyText(value, label) {
+  const textarea = document.createElement("textarea");
+
+  textarea.value = value;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+
+  document.body.appendChild(textarea);
+
+  textarea.focus();
+  textarea.select();
+
+  try {
+    const success = document.execCommand("copy");
+
+    if (success) {
+      showToast(`📋 ${label} berhasil disalin`);
+    } else {
+      showToast(`❌ Gagal menyalin ${label}`);
+    }
+  } catch (error) {
+    showToast(`❌ Gagal menyalin ${label}`);
+  }
+
+  document.body.removeChild(textarea);
 }
 
 /* ======================
