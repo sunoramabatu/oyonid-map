@@ -1738,18 +1738,26 @@ downloadBtn.onclick = () => {
   }
 
   // Ambil KODE PETUGAS dari baris pertama
-  const kodePetugas = (workingRows[0]["KODE PETUGAS"] || "UNKNOWN")
-    .toString()
-    .replace(/\s+/g, "_");
+  // Ambil nama PETUGAS dari baris pertama
+const namaPetugas = (
+  workingRows[0]["PETUGAS"] ||
+  workingRows[0]["Petugas"] ||
+  workingRows[0]["petugas"] ||
+  "UNKNOWN"
+)
+  .toString()
+  .trim()
+  .replace(/[\\/:*?"<>|]/g, "")
+  .replace(/\s+/g, "_");
 
-  // Buat timestamp
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, "0");
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const hh = String(now.getHours()).padStart(2, "0");
-  const min = String(now.getMinutes()).padStart(2, "0");
+// Buat timestamp
+const now = new Date();
+const dd = String(now.getDate()).padStart(2, "0");
+const mm = String(now.getMonth() + 1).padStart(2, "0");
+const hh = String(now.getHours()).padStart(2, "0");
+const min = String(now.getMinutes()).padStart(2, "0");
 
-  const filename = `RBM_${kodePetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
+const filename = `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
   // ===== CLEAN EXPORT ENGINE =====
 
