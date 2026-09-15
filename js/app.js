@@ -74,7 +74,30 @@ function getDILLon(row) {
 /* ======================
    UTIL — HARI BACA DARI KDDK ACMT
 ====================== */
+/* ======================
+   UTIL — HARI BACA
+   PRIORITAS:
+   1. Kolom HARI
+   2. Kolom HARI BACA
+   3. KDDK ACMT / KDDK
+====================== */
+
 function getHariBaca(row) {
+  // Jika Excel sudah memiliki kolom HARI, gunakan langsung.
+  const hariLangsung =
+    row["HARI"] ||
+    row["Hari"] ||
+    row["hari"] ||
+    row["HARI BACA"] ||
+    row["Hari Baca"] ||
+    row["hari baca"] ||
+    "";
+
+  if (hariLangsung !== "") {
+    return String(hariLangsung).trim().toUpperCase();
+  }
+
+  // Jika tidak ada kolom HARI, ambil dari KDDK ACMT.
   const kddk = String(
     row["KDDK ACMT"] ||
     row["KDDK"] ||
@@ -84,13 +107,12 @@ function getHariBaca(row) {
 
   if (!kddk) return "-";
 
-  // Contoh:
-  // CMAWHNQ07800
-  // Huruf HARI BACA = Q
-  // Posisi 6 karakter dari belakang
-  const hari = kddk.slice(-6, -5);
+  // Contoh: CMAWHNQ07800 → huruf HARI BACA = Q
+  const hariDariKddk = kddk.slice(-6, -5);
 
-  return hari ? hari.toUpperCase() : "-";
+  return hariDariKddk
+    ? hariDariKddk.toUpperCase()
+    : "-";
 }
 
 /* ======================
