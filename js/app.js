@@ -1,9 +1,9 @@
 window.onerror = function (msg, src, line, col, err) {
-  alert("JS ERROR:\n" + msg + "\nLine: " + line);
-  console.error(err);
+alert("JS ERROR:\n" + msg + "\nLine: " + line);
+console.error(err);
 };
 /* ======================
-   GLOBAL STATE
+  GLOBAL STATE
 ====================== */
 let markers = [];
 let searchIndex = [];
@@ -12,7 +12,7 @@ let routingControl = null;
 let petugasMarker = null;
 
 let history = JSON.parse(
-  localStorage.getItem("oyon_history") || "[]"
+localStorage.getItem("oyon_history") || "[]"
 );
 
 let originalRows = [];
@@ -35,153 +35,131 @@ window.isCompareMode = false;
 window.compareMarkers = [];
 
 /* ======================
-   GPS COMPATIBILITY ENGINE
+  GPS COMPATIBILITY ENGINE
 ====================== */
 
 function getDIJLat(row) {
-  return parseFloat(
-    row["LAT DIJ"] ||
-    row["LAT"] ||
-    0
-  );
+return parseFloat(
+row["LAT DIJ"] ||
+row["LAT"] ||
+0
+);
 }
 
 function getDIJLon(row) {
-  return parseFloat(
-    row["LON DIJ"] ||
-    row["LON"] ||
-    0
-  );
+return parseFloat(
+row["LON DIJ"] ||
+row["LON"] ||
+0
+);
 }
 
 function getDILLat(row) {
-  return parseFloat(
-    row["LAT DIL"] ||
-    row["LATTH"] ||
-    row["LATDIL"] ||
-    0
-  );
+return parseFloat(
+row["LAT DIL"] ||
+row["LATTH"] ||
+row["LATDIL"] ||
+0
+);
 }
 
 function getDILLon(row) {
-  return parseFloat(
-    row["LON DIL"] ||
-    row["LONTH"] ||
-    row["LONDIL"] ||
-    0
-  );
+return parseFloat(
+row["LON DIL"] ||
+row["LONTH"] ||
+row["LONDIL"] ||
+0
+);
 }
 /* ======================
-   UTIL — HARI BACA DARI KDDK ACMT
+  UTIL — HARI BACA DARI KDDK ACMT
 ====================== */
-/* ======================
-   UTIL — HARI BACA
-   PRIORITAS:
-   1. Kolom HARI
-   2. Kolom HARI BACA
-   3. KDDK ACMT / KDDK
-====================== */
-
 function getHariBaca(row) {
-  // Jika Excel sudah memiliki kolom HARI, gunakan langsung.
-  const hariLangsung =
-    row["HARI"] ||
-    row["Hari"] ||
-    row["hari"] ||
-    row["HARI BACA"] ||
-    row["Hari Baca"] ||
-    row["hari baca"] ||
-    "";
+const kddk = String(
+row["KDDK ACMT"] ||
+row["KDDK"] ||
+row["KODEDK"] ||
+""
+).trim();
 
-  if (hariLangsung !== "") {
-    return String(hariLangsung).trim().toUpperCase();
-  }
+if (!kddk) return "-";
 
-  // Jika tidak ada kolom HARI, ambil dari KDDK ACMT.
-  const kddk = String(
-    row["KDDK ACMT"] ||
-    row["KDDK"] ||
-    row["KODEDK"] ||
-    ""
-  ).trim();
+// Contoh:
+// CMAWHNQ07800
+// Huruf HARI BACA = Q
+// Posisi 6 karakter dari belakang
+const hari = kddk.slice(-6, -5);
 
-  if (!kddk) return "-";
-
-  // Contoh: CMAWHNQ07800 → huruf HARI BACA = Q
-  const hariDariKddk = kddk.slice(-6, -5);
-
-  return hariDariKddk
-    ? hariDariKddk.toUpperCase()
-    : "-";
+return hari ? hari.toUpperCase() : "-";
 }
 
 /* ======================
-   UTIL — URUTAN BACA DARI KDDK ACMT
+  UTIL — URUTAN BACA DARI KDDK ACMT
 ====================== */
 
 function getUrutanBaca(row) {
-  const kddk = String(
-    row["KDDK ACMT"] ||
-    row["KDDK"] ||
-    row["KODEDK"] ||
-    ""
-  ).trim();
+const kddk = String(
+row["KDDK ACMT"] ||
+row["KDDK"] ||
+row["KODEDK"] ||
+""
+).trim();
 
-  if (!kddk) return null;
+if (!kddk) return null;
 
-  // Contoh CMAWHNQ07800 → 078 → 78
-  const match = kddk.match(/[A-Z](\d{3})\d{2}$/i);
+// Contoh CMAWHNQ07800 → 078 → 78
+const match = kddk.match(/[A-Z](\d{3})\d{2}$/i);
 
-  if (!match) return null;
+if (!match) return null;
 
-  const urutan = Number(match[1]);
+const urutan = Number(match[1]);
 
-  return Number.isFinite(urutan) ? urutan : null;
+return Number.isFinite(urutan) ? urutan : null;
 }
 
 function getNoMeter(row){
 
-  return (
-    row.NOMORKWH ||
-    row.NOMET ||
-    row.NO_METER ||
-    row.NOMETER ||
-    "-"
-  );
+return (
+row.NOMORKWH ||
+row.NOMET ||
+row.NO_METER ||
+row.NOMETER ||
+"-"
+);
 
 }
 
 function getMerkMeter(row){
 
-  return (
-    row.MEREKKWH ||
-    row.MERK ||
-    row.MERKMETER ||
-    "-"
-  );
+return (
+row.MEREKKWH ||
+row.MERK ||
+row.MERKMETER ||
+"-"
+);
 
 }
 
 function getKDDK(row){
 
-  return (
-    row.KDDK ||
-    row.KODEDK ||
-    row.KODUK ||
-    "-"
-  );
+return (
+row.KDDK ||
+row.KODEDK ||
+row.KODUK ||
+"-"
+);
 
 }
 
 function renderMarker(m, map) {
-  if (!m || !m.marker) return;
+if (!m || !m.marker) return;
 
-  const marker = m.marker;
+const marker = m.marker;
 
-  // kalau sudah ada di map, jangan di-add lagi
-  if (map.hasLayer(marker)) return;
+// kalau sudah ada di map, jangan di-add lagi
+if (map.hasLayer(marker)) return;
 
-  clusterGroup.addLayer(marker);
+clusterGroup.addLayer(marker);
 }
 
 
@@ -193,22 +171,22 @@ const today = new Date().toDateString();
 const savedDate = localStorage.getItem("oyon_history_date");
 
 function closeHistory() {
-  const panel = document.getElementById("historyPanel");
-  if (panel) {
-    panel.style.display = "none";
-  }
+const panel = document.getElementById("historyPanel");
+if (panel) {
+panel.style.display = "none";
+}
 }
 
 if (savedDate !== today) {
-  history = [];
-  localStorage.setItem("oyon_history", "[]");
-  localStorage.setItem("oyon_history_date", today);
-  renderHistory();
+history = [];
+localStorage.setItem("oyon_history", "[]");
+localStorage.setItem("oyon_history_date", today);
+renderHistory();
 
 }
 
 /* ======================
-   DOM
+  DOM
 ====================== */
 const upload = document.getElementById("upload");
 const statusText = document.getElementById("statusText");
@@ -218,38 +196,38 @@ const zoomBtn = document.getElementById("zoomBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
 /* ======================
-   INIT MAP
+  INIT MAP
 ====================== */
 const map = L.map("map", {
-  preferCanvas: true,
-  rotate: true,
-  zoomControl: false,
-  touchRotate: true,
-  rotateControl: true,
-  maxZoom: 19,
+preferCanvas: true,
+rotate: true,
+zoomControl: false,
+touchRotate: true,
+rotateControl: true,
+maxZoom: 19,
 }).setView([-7.974155,112.6181065], 12);
 
 /* ======================
-   CLUSTER ENGINE
+  CLUSTER ENGINE
 ====================== */
 
 const clusterGroup = L.markerClusterGroup({
 
-  chunkedLoading: true,
-  chunkInterval: 80,
-  chunkDelay: 20,
+chunkedLoading: true,
+chunkInterval: 80,
+chunkDelay: 20,
 
-  removeOutsideVisibleBounds: true,
+removeOutsideVisibleBounds: true,
 
-  spiderfyOnMaxZoom: true,
+spiderfyOnMaxZoom: true,
 
-  showCoverageOnHover: false,
+showCoverageOnHover: false,
 
-  zoomToBoundsOnClick: true,
+zoomToBoundsOnClick: true,
 
-  disableClusteringAtZoom: 17,
+disableClusteringAtZoom: 17,
 
-  maxClusterRadius: 18
+maxClusterRadius: 18
 
 });
 
@@ -257,20 +235,20 @@ map.addLayer(clusterGroup);
 
 function addMarkerToMap(marker) {
 
-  if (!marker) return;
+if (!marker) return;
 
-  if (!clusterGroup.hasLayer(marker)) {
-    clusterGroup.addLayer(marker);
-  }
+if (!clusterGroup.hasLayer(marker)) {
+clusterGroup.addLayer(marker);
+}
 
 }
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom: 19
+maxZoom: 19
 }).addTo(map);
 
 /* ======================
-   AUTO VIEWPORT RENDER
+  AUTO VIEWPORT RENDER
 ====================== */
 
 map.on("moveend", renderVisibleMarkers);
@@ -278,507 +256,507 @@ map.on("zoomend", renderVisibleMarkers);
 
 
 /* ======================
-   IKUT KOMPAS
+  IKUT KOMPAS
 ====================== */
 let lastBearing = null;
 let lastUpdate = 0;
 let compassHandler = null;
 
 function enableCompass() {
-  if (compassHandler) return; // sudah aktif
+if (compassHandler) return; // sudah aktif
 
-  compassHandler = (event) => {
-    const now = Date.now();
-    if (now - lastUpdate < 120) return;
-    if (event.alpha == null) return;
+compassHandler = (event) => {
+const now = Date.now();
+if (now - lastUpdate < 120) return;
+if (event.alpha == null) return;
 
-    const target = 360 - event.alpha;
-    if (lastBearing == null) lastBearing = target;
+const target = 360 - event.alpha;
+if (lastBearing == null) lastBearing = target;
 
-    const smooth = lastBearing + (target - lastBearing) * 0.25;
-    map.setBearing(smooth);
+const smooth = lastBearing + (target - lastBearing) * 0.25;
+map.setBearing(smooth);
 
-    lastBearing = smooth;
-    lastUpdate = now;
-  };
+lastBearing = smooth;
+lastUpdate = now;
+};
 
-  window.addEventListener("deviceorientation", compassHandler);
-  showToast("🧭 Kompas aktif");
+window.addEventListener("deviceorientation", compassHandler);
+showToast("🧭 Kompas aktif");
 }
 
 function disableCompass() {
-  if (compassHandler) {
-    window.removeEventListener("deviceorientation", compassHandler);
-    compassHandler = null;
-    showToast("🛑 Kompas mati");
-  }
+if (compassHandler) {
+window.removeEventListener("deviceorientation", compassHandler);
+compassHandler = null;
+showToast("🛑 Kompas mati");
+}
 }
 
 /* ======================
-   LOAD EXCEL
+  LOAD EXCEL
 ====================== */
 upload.onchange = e => {
-  const file = e.target.files[0];
-  if (!file) return;
+const file = e.target.files[0];
+if (!file) return;
 
-  // SIMPAN nama file
-  localStorage.setItem("RBM_FILENAME", file.name);
+// SIMPAN nama file
+localStorage.setItem("RBM_FILENAME", file.name);
 
-  const reader = new FileReader();
-  reader.onload = evt => {
-    const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    originalRows = XLSX.utils.sheet_to_json(sheet);
-    
-    workingRows = structuredClone(originalRows);
-    saveState();
+const reader = new FileReader();
+reader.onload = evt => {
+const wb = XLSX.read(new Uint8Array(evt.target.result), { type: "array" });
+const sheet = wb.Sheets[wb.SheetNames[0]];
+originalRows = XLSX.utils.sheet_to_json(sheet);
 
-    buildMarkers();
-    renderHistory();
+workingRows = structuredClone(originalRows);
+saveState();
 
-    
+buildMarkers();
+renderHistory();
 
-    if (statusText) {
-      statusText.innerText = "✅ Peta berhasil dibuat";
-    }
-    zoomBtn.style.display = "block";
 
-    // auto zoom setelah upload
-    zoomToAllMarkers();
-  };
-  reader.readAsArrayBuffer(file);
 
-  document.addEventListener("DOMContentLoaded", () => {
-  const statusText = document.getElementById("statusText");
+if (statusText) {
+statusText.innerText = "✅ Peta berhasil dibuat";
+}
+zoomBtn.style.display = "block";
+
+// auto zoom setelah upload
+zoomToAllMarkers();
+};
+reader.readAsArrayBuffer(file);
+
+document.addEventListener("DOMContentLoaded", () => {
+const statusText = document.getElementById("statusText");
 });
 
 };
 
 
 /* ======================
-   KUMPULKAN HARI BACA
+  KUMPULKAN HARI BACA
 ====================== */
 hariBacaList = [...new Set(
-  workingRows
-    .map(r => String(r["HARI BACA ACMT"]).trim())
-    .filter(v => v !== "")
+workingRows
+.map(r => String(r["HARI BACA ACMT"]).trim())
+.filter(v => v !== "")
 )].sort((a,b)=>a-b);
 
 /* ======================
-   SAAT LOAD
+  SAAT LOAD
 ====================== */
 window.addEventListener("load", () => {
 
-  // Restore filename
-  const savedFilename = localStorage.getItem("RBM_FILENAME");
-  if (savedFilename) {
-    document.getElementById("fileNameLabel").innerText = "📄 " + savedFilename;
-  }
+// Restore filename
+const savedFilename = localStorage.getItem("RBM_FILENAME");
+if (savedFilename) {
+document.getElementById("fileNameLabel").innerText = "📄 " + savedFilename;
+}
 
-  const saved = localStorage.getItem(STORAGE_KEY);
+const saved = localStorage.getItem(STORAGE_KEY);
 
-  if (saved) {
-    workingRows = JSON.parse(saved);
+if (saved) {
+workingRows = JSON.parse(saved);
 
-    map.whenReady(() => {
-      buildMarkers();
-      renderHistory();
+map.whenReady(() => {
+buildMarkers();
+renderHistory();
 
-      // Tampilkan tombol zoom
-      if (workingRows.length > 0) {
-        zoomBtn.style.display = "block";
-      }
+// Tampilkan tombol zoom
+if (workingRows.length > 0) {
+zoomBtn.style.display = "block";
+}
 
-      // Auto zoom ke marker
-      zoomToAllMarkers();
-    });
-  }
+// Auto zoom ke marker
+zoomToAllMarkers();
+});
+}
 });
 
 function zoomToAllMarkers() {
-  if (!markers.length) return;
-  const group = L.featureGroup(markers.map(m => m.marker));
-  map.fitBounds(group.getBounds(), { padding: [40, 40] });
+if (!markers.length) return;
+const group = L.featureGroup(markers.map(m => m.marker));
+map.fitBounds(group.getBounds(), { padding: [40, 40] });
 }
 /* ======================
-   FUNGSI FILTER MARKER HARI BACA
+  FUNGSI FILTER MARKER HARI BACA
 ====================== */
 function applyHariBacaFilter() {
 
-  const showDIJ = document.getElementById("chkDIJ")?.checked ?? true;
-  const showDIL  = document.getElementById("chkDIL")?.checked ?? true;
+const showDIJ = document.getElementById("chkDIJ")?.checked ?? true;
+const showDIL  = document.getElementById("chkDIL")?.checked ?? true;
 
-  markers.forEach(m => {
+markers.forEach(m => {
 
-    let visible = true;
+let visible = true;
 
-    // filter jenis marker
-    if (m.type === "DIJ" && !showDIJ) visible = false;
-    if (m.type === "DIL"  && !showDIL)  visible = false;
+// filter jenis marker
+if (m.type === "DIJ" && !showDIJ) visible = false;
+if (m.type === "DIL"  && !showDIL)  visible = false;
 
-    // filter 1 hari baca
-    if (filterHariBacaAktif) {
-      const hari = getHariBaca(m.row);
-      if (hari !== daftarHariBaca[indexHariBaca]) {
-        visible = false;
-      }
-    }
+// filter 1 hari baca
+if (filterHariBacaAktif) {
+const hari = getHariBaca(m.row);
+if (hari !== daftarHariBaca[indexHariBaca]) {
+visible = false;
+}
+}
 
-    if (visible) {
-      if (!clusterGroup.hasLayer(m.marker)) clusterGroup.addLayer(m.marker);
-    } else {
-      if (clusterGroup.hasLayer(m.marker)) clusterGroup.removeLayer(m.marker);
-    }
-  });
+if (visible) {
+if (!clusterGroup.hasLayer(m.marker)) clusterGroup.addLayer(m.marker);
+} else {
+if (clusterGroup.hasLayer(m.marker)) clusterGroup.removeLayer(m.marker);
+}
+});
 
-  document.getElementById("hariBacaLabel").innerText =
-    filterHariBacaAktif
-      ? `HARI BACA: ${daftarHariBaca[indexHariBaca]}`
-      :"HARI BACA: ALL"
+document.getElementById("hariBacaLabel").innerText =
+filterHariBacaAktif
+? `HARI BACA: ${daftarHariBaca[indexHariBaca]}`
+:"HARI BACA: ALL"
 
-  renderVisibleMarkers();
+renderVisibleMarkers();
 }
 
 function showNormalMarkers() {
-  markers.forEach(m => {
-    if (!clusterGroup.hasLayer(m.marker)) {
-      addMarkerToMap(m.marker);
-    }
-  });
+markers.forEach(m => {
+if (!clusterGroup.hasLayer(m.marker)) {
+addMarkerToMap(m.marker);
+}
+});
 }
 /* ======================
-   VIEWPORT RENDER ENGINE
+  VIEWPORT RENDER ENGINE
 ====================== */
 
 function renderVisibleMarkers() {
-  if (window.isCompareMode) return;
+if (window.isCompareMode) return;
 
-  const bounds = map.getBounds();
+const bounds = map.getBounds();
 
-  markers.forEach(m => {
+markers.forEach(m => {
 
-    let visible = true;
+let visible = true;
 
-    // FILTER DIJ / DIL
-    const showDIJ =
-      document.getElementById("chkDIJ")?.checked ?? true;
+// FILTER DIJ / DIL
+const showDIJ =
+document.getElementById("chkDIJ")?.checked ?? true;
 
-    const showDIL =
-      document.getElementById("chkDIL")?.checked ?? true;
+const showDIL =
+document.getElementById("chkDIL")?.checked ?? true;
 
-    if (m.type === "DIJ" && !showDIJ) {
-      visible = false;
-    }
+if (m.type === "DIJ" && !showDIJ) {
+visible = false;
+}
 
-    if (m.type === "DIL" && !showDIL) {
-      visible = false;
-    }
+if (m.type === "DIL" && !showDIL) {
+visible = false;
+}
 
-    // FILTER HARI BACA
-    if (filterHariBacaAktif) {
+// FILTER HARI BACA
+if (filterHariBacaAktif) {
 
-      const hari = getHariBaca(m.row);
+const hari = getHariBaca(m.row);
 
-      if (hari !== daftarHariBaca[indexHariBaca]) {
-        visible = false;
-      }
-    }
+if (hari !== daftarHariBaca[indexHariBaca]) {
+visible = false;
+}
+}
 
-    // VIEWPORT CHECK
-    const latlng = m.marker.getLatLng();
+// VIEWPORT CHECK
+const latlng = m.marker.getLatLng();
 
-    const insideViewport =
-      bounds.contains(latlng);
+const insideViewport =
+bounds.contains(latlng);
 
-    // ===== SHOW =====
-    if (visible && insideViewport) {
+// ===== SHOW =====
+if (visible && insideViewport) {
 
-      if (!clusterGroup.hasLayer(m.marker)) {
-        clusterGroup.addLayer(m.marker);
-      }
+if (!clusterGroup.hasLayer(m.marker)) {
+clusterGroup.addLayer(m.marker);
+}
 
-    }
+}
 
-    // ===== HIDE =====
-    else {
+// ===== HIDE =====
+else {
 
-      if (clusterGroup.hasLayer(m.marker)) {
-        clusterGroup.removeLayer(m.marker);
-      }
+if (clusterGroup.hasLayer(m.marker)) {
+clusterGroup.removeLayer(m.marker);
+}
 
-    }
+}
 
-  });
+});
 
 }
 
 /* ======================
-   SIMPAN STATE
+  SIMPAN STATE
 ====================== */
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(workingRows));
+localStorage.setItem(STORAGE_KEY, JSON.stringify(workingRows));
 }
 
 /* ======================
-   FILTER MARKER DIJ / DIL / HARI BACA
+  FILTER MARKER DIJ / DIL / HARI BACA
 ====================== */
 
 function applyMarkerFilter() {
-  if (!markers || markers.length === 0) return;
+if (!markers || markers.length === 0) return;
 
-  const showDIJ =
-    document.getElementById("chkDIJ")?.checked ?? true;
+const showDIJ =
+document.getElementById("chkDIJ")?.checked ?? true;
 
-  const showDIL =
-    document.getElementById("chkDIL")?.checked ?? true;
+const showDIL =
+document.getElementById("chkDIL")?.checked ?? true;
 
-  const hariAktif =
-    filterHariBacaAktif
-      ? daftarHariBaca[indexHariBaca]
-      : null;
+const hariAktif =
+filterHariBacaAktif
+? daftarHariBaca[indexHariBaca]
+: null;
 
-  markers.forEach(m => {
-    if (!m || !m.marker) return;
+markers.forEach(m => {
+if (!m || !m.marker) return;
 
-    let visible = true;
+let visible = true;
 
-    // FILTER JENIS MARKER
-    if (m.type === "DIJ" && !showDIJ) {
-      visible = false;
-    }
+// FILTER JENIS MARKER
+if (m.type === "DIJ" && !showDIJ) {
+visible = false;
+}
 
-    if (m.type === "DIL" && !showDIL) {
-      visible = false;
-    }
+if (m.type === "DIL" && !showDIL) {
+visible = false;
+}
 
-    // FILTER HARI BACA
-    if (visible && filterHariBacaAktif) {
-      const hariRow = getHariBaca(m.row);
+// FILTER HARI BACA
+if (visible && filterHariBacaAktif) {
+const hariRow = getHariBaca(m.row);
 
-      if (hariRow !== hariAktif) {
-        visible = false;
-      }
-    }
+if (hariRow !== hariAktif) {
+visible = false;
+}
+}
 
-    // Tambahkan atau hapus marker dari cluster
-    if (visible) {
-      addMarkerToMap(m.marker);
-    } else {
-      if (clusterGroup.hasLayer(m.marker)) {
-        clusterGroup.removeLayer(m.marker);
-      }
-    }
-  });
+// Tambahkan atau hapus marker dari cluster
+if (visible) {
+addMarkerToMap(m.marker);
+} else {
+if (clusterGroup.hasLayer(m.marker)) {
+clusterGroup.removeLayer(m.marker);
+}
+}
+});
 
-  updateHariBacaLabel();
+updateHariBacaLabel();
 }
 /* ======================
-   FILTER SATU HARI BACA
+  FILTER SATU HARI BACA
 ====================== */
 
 function applyHariBacaFilter() {
-  applyMarkerFilter();
+applyMarkerFilter();
 }
 function nextHari(){
-  if (!filterHariBacaAktif) return;
-  if (!daftarHariBaca.length) return;
+if (!filterHariBacaAktif) return;
+if (!daftarHariBaca.length) return;
 
-  indexHariBaca++;
+indexHariBaca++;
 
-  if (indexHariBaca >= daftarHariBaca.length) {
-    indexHariBaca = 0;
-  }
+if (indexHariBaca >= daftarHariBaca.length) {
+indexHariBaca = 0;
+}
 
-  applyHariBacaFilter();
+applyHariBacaFilter();
 }
 
 function prevHari(){
-  if (!filterHariBacaAktif) return;
-  if (!daftarHariBaca.length) return;
+if (!filterHariBacaAktif) return;
+if (!daftarHariBaca.length) return;
 
-  indexHariBaca--;
+indexHariBaca--;
 
-  if (indexHariBaca < 0) {
-    indexHariBaca = daftarHariBaca.length - 1;
-  }
+if (indexHariBaca < 0) {
+indexHariBaca = daftarHariBaca.length - 1;
+}
 
-  applyHariBacaFilter();
+applyHariBacaFilter();
 }
 
 
 function updateHariBacaLabel() {
-  const el = document.getElementById("hariBacaLabel");
-  if (!el) return;
+const el = document.getElementById("hariBacaLabel");
+if (!el) return;
 
-  el.innerText = filterHariBacaAktif
-    ? `HARI BACA: ${daftarHariBaca[indexHariBaca]}`
-    : "HARI BACA: ALL";
+el.innerText = filterHariBacaAktif
+? `HARI BACA: ${daftarHariBaca[indexHariBaca]}`
+: "HARI BACA: ALL";
 }
 
 window.addEventListener("DOMContentLoaded", () => {
 
-  const cb = document.getElementById("oneDayCheck");
+const cb = document.getElementById("oneDayCheck");
 
-  if (cb) {
-    cb.onchange = e => {
-      filterHariBacaAktif = e.target.checked;
+if (cb) {
+cb.onchange = e => {
+filterHariBacaAktif = e.target.checked;
 
-      if (filterHariBacaAktif && daftarHariBaca.length === 0) {
-        showToast("⚠️ Data hari baca kosong");
+if (filterHariBacaAktif && daftarHariBaca.length === 0) {
+showToast("⚠️ Data hari baca kosong");
 
-        cb.checked = false;
-        filterHariBacaAktif = false;
+cb.checked = false;
+filterHariBacaAktif = false;
 
-        applyMarkerFilter();
-        return;
-      }
+applyMarkerFilter();
+return;
+}
 
-      indexHariBaca = 0;
+indexHariBaca = 0;
 
-      applyHariBacaFilter();
-    };
-  }
+applyHariBacaFilter();
+};
+}
 
-  const chkDIJ = document.getElementById("chkDIJ");
-  const chkDIL = document.getElementById("chkDIL");
+const chkDIJ = document.getElementById("chkDIJ");
+const chkDIL = document.getElementById("chkDIL");
 
-  if (chkDIJ) {
-    chkDIJ.addEventListener("change", applyMarkerFilter);
-  }
+if (chkDIJ) {
+chkDIJ.addEventListener("change", applyMarkerFilter);
+}
 
-  if (chkDIL) {
-    chkDIL.addEventListener("change", applyMarkerFilter);
-  }
+if (chkDIL) {
+chkDIL.addEventListener("change", applyMarkerFilter);
+}
 
 });
 
 
 /* ======================
-   TAMPILKAN NAMA FILE SAAT REFRESH
+  TAMPILKAN NAMA FILE SAAT REFRESH
 ====================== */
 
 /* ======================
-   BUILD MARKERS
+  BUILD MARKERS
 ====================== */
 function buildMarkers(){
-  // 🔥 HAPUS SEMUA MARKER LAMA DARI MAP
+// 🔥 HAPUS SEMUA MARKER LAMA DARI MAP
 clusterGroup.clearLayers();
 
 markers = [];
 searchIndex = [];
 
-  workingRows.forEach(row => {
-    // ==========================
-    // MARKER 1 — LOKASI DIJ
-    // ==========================
-    const lat = getDIJLat(row);
-    const lng = getDIJLon(row);
+workingRows.forEach(row => {
+// ==========================
+// MARKER 1 — LOKASI DIJ
+// ==========================
+const lat = getDIJLat(row);
+const lng = getDIJLon(row);
 
-    if(lat && lng){
-      const hariBaca = getHariBaca(row);
-      const color = getColor(hariBaca);
+if(lat && lng){
+const hariBaca = getHariBaca(row);
+const color = getColor(hariBaca);
 
 
-      const iconDIJ = L.divIcon({
-        html: `<div class="custom-marker" style="background:${color}"></div>`,
-        iconSize: [16,16],
-        iconAnchor: [8,16],
-        className: ""
-      });
+const iconDIJ = L.divIcon({
+html: `<div class="custom-marker" style="background:${color}"></div>`,
+iconSize: [16,16],
+iconAnchor: [8,16],
+className: ""
+});
 
-      const markerDIJ = L.marker([lat, lng], { icon: iconDIJ });
+const markerDIJ = L.marker([lat, lng], { icon: iconDIJ });
 
-      markerDIJ.bindTooltip(row.NAMA, {
-        permanent: false,
-        direction: "top",
-        offset: [0, -10],
-        opacity: 0.9,
-        className: "marker-label"
-      });
+markerDIJ.bindTooltip(row.NAMA, {
+permanent: false,
+direction: "top",
+offset: [0, -10],
+opacity: 0.9,
+className: "marker-label"
+});
 
-      markerDIJ.on("click", () => openDetail(row));
+markerDIJ.on("click", () => openDetail(row));
 
-      markers.push({
-        marker: markerDIJ,
-        row: row,
-        type: "DIJ"
-      });
+markers.push({
+marker: markerDIJ,
+row: row,
+type: "DIJ"
+});
 
-            searchIndex.push({
+searchIndex.push({
 
-          idpel: String(
-            row.IDPEL || ""
-          ).replace(/\D/g,""),
+idpel: String(
+row.IDPEL || ""
+).replace(/\D/g,""),
 
-          meter: String(
-            getNoMeter(row) || ""
-          ).replace(/\D/g,""),
+meter: String(
+getNoMeter(row) || ""
+).replace(/\D/g,""),
 
-          marker: markerDIJ,
+marker: markerDIJ,
 
-          row
+row
 
-        });
-      
-    }
-    
+});
 
-    // ==========================
+}
+
+
+// ==========================
 // MARKER 2 — TAGGING Lokasi DIL (HITAM)
 // ==========================
 const latDIL = getDILLat(row);
 const lonDIL = getDILLon(row);
 
 const hasDILLocation =
-  latDIL && lonDIL &&
-  !isNaN(latDIL) &&
-  !isNaN(lonDIL);
+latDIL && lonDIL &&
+!isNaN(latDIL) &&
+!isNaN(lonDIL);
 
 if (hasDILLocation) {
 
-  // ICON Lokasi DIL (WAJIB DULU)
-  const iconDIL = L.divIcon({
-    html: `<div class="custom-marker" style="background:#000"></div>`,
-    iconSize: [12, 12],
-    iconAnchor: [6, 12],
-    className: ""
-  });
+// ICON Lokasi DIL (WAJIB DULU)
+const iconDIL = L.divIcon({
+html: `<div class="custom-marker" style="background:#000"></div>`,
+iconSize: [12, 12],
+iconAnchor: [6, 12],
+className: ""
+});
 
-  // MARKER Lokasi DIL
-  const markerDIL = L.marker([latDIL, lonDIL], { icon: iconDIL });
+// MARKER Lokasi DIL
+const markerDIL = L.marker([latDIL, lonDIL], { icon: iconDIL });
 
-  markerDIL.bindTooltip(
-    `<b>${row.NAMA}</b><br>IDPEL: ${row.IDPEL}`,
-    {
-      permanent: false,
-      direction: "top",
-      offset: [0, -10],
-      opacity: 0.8,
-      className: "marker-label"
-    }
-  );
+markerDIL.bindTooltip(
+`<b>${row.NAMA}</b><br>IDPEL: ${row.IDPEL}`,
+{
+permanent: false,
+direction: "top",
+offset: [0, -10],
+opacity: 0.8,
+className: "marker-label"
+}
+);
 
-  markerDIL.on("click", () => openDetail(row));
+markerDIL.on("click", () => openDetail(row));
 
-  markers.push({
-    marker: markerDIL,
-    row,
-    type: "DIL"
-  });
+markers.push({
+marker: markerDIL,
+row,
+type: "DIL"
+});
 }
 
-  }); // ← TUTUP workingRows.forEach
+}); // ← TUTUP workingRows.forEach
 
-  // ===== KUMPULKAN HARI BACA UNIK (SETELAH BUILD MARKER) =====
+// ===== KUMPULKAN HARI BACA UNIK (SETELAH BUILD MARKER) =====
 daftarHariBaca = [...new Set(
-  workingRows
-    .map(r => getHariBaca(r))
-    .filter(v => v)
+workingRows
+.map(r => getHariBaca(r))
+.filter(v => v)
 )].sort();
 
 // ⛔ JANGAN reset index kalau filter sudah aktif
 if (!filterHariBacaAktif) {
-  indexHariBaca = 0;
+indexHariBaca = 0;
 }
 
 updateHariBacaLabel();
@@ -786,329 +764,329 @@ applyHariBacaFilter();
 renderVisibleMarkers();
 
 setTimeout(() => {
-  renderVisibleMarkers();
+renderVisibleMarkers();
 }, 200);
 }     // ← TUTUP function buildMarkers
 
 /* ======================
 markers.forEach(m => {
-  if (m.marker && m.marker.addTo) {
-    clusterGroup.addLayer(m.marker);
-  }
+ if (m.marker && m.marker.addTo) {
+   clusterGroup.addLayer(m.marker);
+ }
 });====================== */
 
 /* ======================
-   HIGHLIGHT MARKER
+  HIGHLIGHT MARKER
 ====================== */
 function highlightMarker(marker){
-  const el = marker.getElement();
-  if(!el) return;
+const el = marker.getElement();
+if(!el) return;
 
-  el.classList.add("highlight");
+el.classList.add("highlight");
 
-  setTimeout(() => {
-    el.classList.remove("highlight");
-  }, 1500);
+setTimeout(() => {
+el.classList.remove("highlight");
+}, 1500);
 }
 
 function showLabel(marker) {
-  marker.openTooltip();
+marker.openTooltip();
 
-  setTimeout(() => {
-    marker.closeTooltip();
-  }, 4000); // nama tampil 4 detik lalu hilang otomatis
+setTimeout(() => {
+marker.closeTooltip();
+}, 4000); // nama tampil 4 detik lalu hilang otomatis
 }
 
 
 function toggleRoute(cb) {
-  if (cb.checked) {
-    enableCompass();
-    showToast("🧭 Ikuti kompas aktif");
-  } else {
-    disableCompass();
-    showToast("🛑 Ikuti kompas mati");
-  }
+if (cb.checked) {
+enableCompass();
+showToast("🧭 Ikuti kompas aktif");
+} else {
+disableCompass();
+showToast("🛑 Ikuti kompas mati");
+}
 }
 
 /* ======================
-   SEARCH ENGINE V2
+  SEARCH ENGINE V2
 ====================== */
 
 searchBtn.onclick = runSearch;
 
 searchInput.addEventListener("keydown", e => {
 
-  if(e.key === "Enter"){
-    runSearch();
-  }
+if(e.key === "Enter"){
+runSearch();
+}
 
 });
 
 function runSearch(){
 
-  // HAPUS POPUP LAMA
-  document
-    .getElementById("searchPopup")
-    ?.remove();
+// HAPUS POPUP LAMA
+document
+.getElementById("searchPopup")
+?.remove();
 
-  const key = searchInput.value
-    .trim()
-    .replace(/\D/g,"");
+const key = searchInput.value
+.trim()
+.replace(/\D/g,"");
 
-  // DEBUG
-  console.log("SEARCH:", key);
-  console.log("INDEX:", searchIndex);
+// DEBUG
+console.log("SEARCH:", key);
+console.log("INDEX:", searchIndex);
 
-  if(key.length < 4){
+if(key.length < 4){
 
-    showToast("Masukkan minimal 4 digit");
-    return;
+showToast("Masukkan minimal 4 digit");
+return;
 
-  }
+}
 
-  if(!searchIndex.length){
+if(!searchIndex.length){
 
-    showToast("Data belum siap");
-    return;
+showToast("Data belum siap");
+return;
 
-  }
+}
 
-  // SEARCH FLEXIBLE
-  const results = searchIndex.filter(o => {
+// SEARCH FLEXIBLE
+const results = searchIndex.filter(o => {
 
-      // kalau 4 digit → cocokkan belakang
-      if(key.length <= 4){
+// kalau 4 digit → cocokkan belakang
+if(key.length <= 4){
 
-        return (
-          o.idpel.endsWith(key) ||
-          o.meter.endsWith(key)
-        );
+return (
+o.idpel.endsWith(key) ||
+o.meter.endsWith(key)
+);
 
-      }
+}
 
-      // kalau lebih panjang → flexible
-      return (
+// kalau lebih panjang → flexible
+return (
 
-        o.idpel.includes(key) ||
-        o.meter.includes(key)
+o.idpel.includes(key) ||
+o.meter.includes(key)
 
-      );
+);
 
-    });
+});
 
-  console.log("RESULTS:", results);
+console.log("RESULTS:", results);
 
-  // TIDAK ADA
-  if(results.length === 0){
+// TIDAK ADA
+if(results.length === 0){
 
-    showToast("Tidak ditemukan");
-    return;
+showToast("Tidak ditemukan");
+return;
 
-  }
+}
 
-  // SATU HASIL
-  if(results.length === 1){
+// SATU HASIL
+if(results.length === 1){
 
-    focusSearchResult(results[0]);
-    return;
+focusSearchResult(results[0]);
+return;
 
-  }
+}
 
-  // MULTI RESULT
-  showSearchResults(results);
+// MULTI RESULT
+showSearchResults(results);
 
 }
 
 function focusSearchResult(found) {
-  if (!found || !found.marker) return;
+if (!found || !found.marker) return;
 
-  if (!clusterGroup.hasLayer(found.marker)) {
-    clusterGroup.addLayer(found.marker);
-  }
+if (!clusterGroup.hasLayer(found.marker)) {
+clusterGroup.addLayer(found.marker);
+}
 
-  found.marker.bringToFront?.();
+found.marker.bringToFront?.();
 
-  map.flyTo(
-    found.marker.getLatLng(),
-    17,
-    {
-      duration: 0.5
-    }
-  );
+map.flyTo(
+found.marker.getLatLng(),
+17,
+{
+duration: 0.5
+}
+);
 
-  setTimeout(() => {
+setTimeout(() => {
 
-    found.marker.openTooltip();
+found.marker.openTooltip();
 
-    highlightMarker(found.marker);
+highlightMarker(found.marker);
 
-    openDetail(found.row);
+openDetail(found.row);
 
-  }, 400);
+}, 400);
 
-  // AUTO MINIMIZE
-  const uiBar =
-    document.getElementById("uiBar");
+// AUTO MINIMIZE
+const uiBar =
+document.getElementById("uiBar");
 
-  const toggleBtn =
-    document.getElementById("toggleBtn");
+const toggleBtn =
+document.getElementById("toggleBtn");
 
-  if(
-    uiBar &&
-    !uiBar.classList.contains("minimized")
-  ){
+if(
+uiBar &&
+!uiBar.classList.contains("minimized")
+){
 
-    uiBar.classList.add("minimized");
+uiBar.classList.add("minimized");
 
-    if(toggleBtn){
-      toggleBtn.innerText = "➕";
-    }
+if(toggleBtn){
+toggleBtn.innerText = "➕";
+}
 
-  }
+}
 
 }
 
 function showSearchResults(results){
 
-  document
-    .getElementById("searchPopup")
-    ?.remove();
+document
+.getElementById("searchPopup")
+?.remove();
 
-  const popup =
-    document.createElement("div");
+const popup =
+document.createElement("div");
 
-  popup.id = "searchPopup";
+popup.id = "searchPopup";
 
-  popup.innerHTML = `
+popup.innerHTML = `
 
-    <div class="searchPopupTitle">
-      Pilih Pelanggan
-    </div>
+   <div class="searchPopupTitle">
+     Pilih Pelanggan
+   </div>
 
-  `;
+ `;
 
-  results.forEach((r, i) => {
+results.forEach((r, i) => {
 
-    const div =
-      document.createElement("div");
+const div =
+document.createElement("div");
 
-    div.className =
-      "searchResultItem";
+div.className =
+"searchResultItem";
 
-    div.innerHTML = `
+div.innerHTML = `
 
-      <strong>
-        ${r.row.NAMA || "-"}
-      </strong><br>
+     <strong>
+       ${r.row.NAMA || "-"}
+     </strong><br>
 
-      IDPEL:
-      ${r.row.IDPEL || "-"}<br>
+     IDPEL:
+     ${r.row.IDPEL || "-"}<br>
 
-      NOMET:
-      ${getNoMeter(r.row)}
+     NOMET:
+     ${getNoMeter(r.row)}
 
-    `;
+   `;
 
-    div.onclick = () => {
+div.onclick = () => {
 
-      focusSearchResult(r);
+focusSearchResult(r);
 
-      popup.remove();
+popup.remove();
 
-    };
+};
 
-    popup.appendChild(div);
+popup.appendChild(div);
 
-  });
+});
 
-  document.body.appendChild(popup);
+document.body.appendChild(popup);
 
 }
 
 /* ======================
-   ZOOM ALL
+  ZOOM ALL
 ====================== */
 zoomBtn.onclick = () => {
-  const active = markers
-    .map(m => m.marker)
-    .filter(m => clusterGroup.hasLayer(m));
+const active = markers
+.map(m => m.marker)
+.filter(m => clusterGroup.hasLayer(m));
 
-  if (!active.length) {
-    showToast("Tidak ada marker aktif");
-    return;
-  }
+if (!active.length) {
+showToast("Tidak ada marker aktif");
+return;
+}
 
-  const group = L.featureGroup(active);
-  map.fitBounds(group.getBounds(), { padding: [40,40] });
+const group = L.featureGroup(active);
+map.fitBounds(group.getBounds(), { padding: [40,40] });
 };
 
 /* ======================
-   DETAIL PANEL
+  DETAIL PANEL
 ====================== */
 function openDetail(r){
-  hasSelectedCustomer = true;
-  const panel = document.getElementById("detailPanel");
-  const left = document.getElementById("detailLeft");
-  const right = document.getElementById("detailRight");
+hasSelectedCustomer = true;
+const panel = document.getElementById("detailPanel");
+const left = document.getElementById("detailLeft");
+const right = document.getElementById("detailRight");
 
-  /* FORCE SHOW MARKERS FOR COMPARE */
+/* FORCE SHOW MARKERS FOR COMPARE */
 
-    // simpan IDPEL yang sedang dibuka (global state kecil)
-  window.currentCompareIDPEL = r.IDPEL;
-  
-  const cardHTML = (label, lat, lon, isDIL = false) => `
-  <div class="${isDIL ? "card-DIL" : ""}">
-    <div style="font-size:13px;color:${isDIL ? "#9ca3af" : "#666"};margin-bottom:4px">
-      ${label}
-    </div>
+// simpan IDPEL yang sedang dibuka (global state kecil)
+window.currentCompareIDPEL = r.IDPEL;
 
-    <div style="
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
+const cardHTML = (label, lat, lon, isDIL = false) => `
+ <div class="${isDIL ? "card-DIL" : ""}">
+   <div style="font-size:13px;color:${isDIL ? "#9ca3af" : "#666"};margin-bottom:4px">
+     ${label}
+   </div>
+
+   <div style="
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:8px;
 ">
 
-  <h3 style="margin:4px 0;flex:1">
-    ${r.NAMA || "-"}
-  </h3>
+ <h3 style="margin:4px 0;flex:1">
+   ${r.NAMA || "-"}
+ </h3>
 
-  <button
-    style="
-      background:#111827;
-      color:white;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:11px;
-      cursor:pointer;
-      white-space:nowrap;
-    "
-    onclick="copyText('${(r.NAMA || "").replace(/'/g,"\\'")}','Nama')">
+ <button
+   style="
+     background:#111827;
+     color:white;
+     border:none;
+     padding:4px 8px;
+     border-radius:6px;
+     font-size:11px;
+     cursor:pointer;
+     white-space:nowrap;
+   "
+   onclick="copyText('${(r.NAMA || "").replace(/'/g,"\\'")}','Nama')">
 
-    Copy Nama
+   Copy Nama
 
-  </button>
+ </button>
 
 </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;">
-  <span>🔢 NOMET: ${getNoMeter(r)}</span>
+   <div style="display:flex;align-items:center;justify-content:space-between;">
+ <span>🔢 NOMET: ${getNoMeter(r)}</span>
 
-  <button
-    style="
-      background:#2563eb;
-      color:white;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:11px;
-      cursor:pointer;
-    "
-    onclick="copyText('${getNoMeter(r)}','Nomor Meter')">
+ <button
+   style="
+     background:#2563eb;
+     color:white;
+     border:none;
+     padding:4px 8px;
+     border-radius:6px;
+     font-size:11px;
+     cursor:pointer;
+   "
+   onclick="copyText('${getNoMeter(r)}','Nomor Meter')">
 
-    Copy NOMET
+   Copy NOMET
 
-  </button>
+ </button>
 </div>
 
 <div>⚡ DAYA: ${r.DAYA || "-"}</div>
@@ -1116,203 +1094,203 @@ function openDetail(r){
 <div>🔧 MERK: ${getMerkMeter(r)}</div>
 
 <div style="
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-top:4px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ margin-top:4px;
 ">
 
-  <span>📟 IDPEL: ${r.IDPEL || "-"}</span>
+ <span>📟 IDPEL: ${r.IDPEL || "-"}</span>
 
-  <button
-    style="
-      background:#059669;
-      color:white;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:11px;
-      cursor:pointer;
-    "
-    onclick="copyText('${r.IDPEL}','IDPEL')">
+ <button
+   style="
+     background:#059669;
+     color:white;
+     border:none;
+     padding:4px 8px;
+     border-radius:6px;
+     font-size:11px;
+     cursor:pointer;
+   "
+   onclick="copyText('${r.IDPEL}','IDPEL')">
 
-    Copy IDPEL
+   Copy IDPEL
 
-  </button>
+ </button>
 
 </div>
 
 <div style="
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-top:4px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ margin-top:4px;
 ">
 
-  <span>🪪 NIK: ${r.NIK || "-"}</span>
+ <span>🪪 NIK: ${r.NIK || "-"}</span>
 
-  <button
-    style="
-      background:#7c3aed;
-      color:white;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:11px;
-      cursor:pointer;
-    "
-    onclick="copyText('${r.NIK || ""}','NIK')">
+ <button
+   style="
+     background:#7c3aed;
+     color:white;
+     border:none;
+     padding:4px 8px;
+     border-radius:6px;
+     font-size:11px;
+     cursor:pointer;
+   "
+   onclick="copyText('${r.NIK || ""}','NIK')">
 
-    Copy NIK
+   Copy NIK
 
-  </button>
+ </button>
 
 </div>
 
 <div style="
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  margin-top:4px;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ margin-top:4px;
 ">
 
-  <span>📱 NO HP: ${r.NO_HP || r.NOHP || "-"}</span>
+ <span>📱 NO HP: ${r.NO_HP || r.NOHP || "-"}</span>
 
-  <button
-    style="
-      background:#ea580c;
-      color:white;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:11px;
-      cursor:pointer;
-    "
-    onclick="copyText('${r.NO_HP || r.NOHP || ""}','Nomor HP')">
+ <button
+   style="
+     background:#ea580c;
+     color:white;
+     border:none;
+     padding:4px 8px;
+     border-radius:6px;
+     font-size:11px;
+     cursor:pointer;
+   "
+   onclick="copyText('${r.NO_HP || r.NOHP || ""}','Nomor HP')">
 
-    Copy NO HP
+   Copy NO HP
 
-  </button>
+ </button>
 
 </div>
 
 <div>📅 HARI BACA: ${getHariBaca(r)}</div>
 
 <div style="
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:8px;
-  margin-top:4px;
+ display:flex;
+ align-items:flex-start;
+ justify-content:space-between;
+ gap:8px;
+ margin-top:4px;
 ">
 
-  <span style="flex:1">
-    🧭 ALAMAT:
-    ${r.ALAMAT || "-"}
-  </span>
+ <span style="flex:1">
+   🧭 ALAMAT:
+   ${r.ALAMAT || "-"}
+ </span>
 
-  <button
-    style="
-      background:#0f766e;
-      color:white;
-      border:none;
-      padding:4px 8px;
-      border-radius:6px;
-      font-size:11px;
-      cursor:pointer;
-      white-space:nowrap;
-    "
-    onclick="copyText(
-      \`${(r.ALAMAT || "").replace(/`/g,"")}\`,
-      'Alamat'
-    )">
+ <button
+   style="
+     background:#0f766e;
+     color:white;
+     border:none;
+     padding:4px 8px;
+     border-radius:6px;
+     font-size:11px;
+     cursor:pointer;
+     white-space:nowrap;
+   "
+   onclick="copyText(
+     \`${(r.ALAMAT || "").replace(/`/g,"")}\`,
+     'Alamat'
+   )">
 
-    Copy ALAMAT
+   Copy ALAMAT
 
-  </button>
+ </button>
 
 </div>
 
-    <div style="margin-top:10px;display:flex;gap:6px;">
-      ${
-        (!isDIL || (lat && lon))
-          ? `<button class="btn-go" onclick="goTo(${lat},${lon})">🧭 Tampil Rute</button>`
-          : ``
-      }
-      <button class="btn-done" onclick="markDone('${r.IDPEL}')">✅ Selesai</button>
-    </div>
-  </div>
+   <div style="margin-top:10px;display:flex;gap:6px;">
+     ${
+       (!isDIL || (lat && lon))
+         ? `<button class="btn-go" onclick="goTo(${lat},${lon})">🧭 Tampil Rute</button>`
+         : ``
+     }
+     <button class="btn-done" onclick="markDone('${r.IDPEL}')">✅ Selesai</button>
+   </div>
+ </div>
 `;
 
-  // tampilkan compare hanya sekali di atas
-    left.innerHTML = cardHTML(
-    "📍 Lokasi DIJ",
-    getDIJLat(r),
-    getDIJLon(r),
-    false
-    );
+// tampilkan compare hanya sekali di atas
+left.innerHTML = cardHTML(
+"📍 Lokasi DIJ",
+getDIJLat(r),
+getDIJLon(r),
+false
+);
 
-  const dilLat = getDILLat(r);
-        const dilLon = getDILLon(r);
+const dilLat = getDILLat(r);
+const dilLon = getDILLon(r);
 
-        if (dilLat && dilLon) {
+if (dilLat && dilLon) {
 
-        right.innerHTML = cardHTML(
-            "📍 Lokasi DIL",
-            dilLat,
-            dilLon,
-            true
-        );
+right.innerHTML = cardHTML(
+"📍 Lokasi DIL",
+dilLat,
+dilLon,
+true
+);
 
-        } else {
+} else {
 
-        right.innerHTML = `
-            <div style="
-            padding:20px;
-            text-align:center;
-            color:#666;
-            ">
-            📭 Lokasi DIL tidak tersedia
-            </div>
-        `;
-        }
+right.innerHTML = `
+           <div style="
+           padding:20px;
+           text-align:center;
+           color:#666;
+           ">
+           📭 Lokasi DIL tidak tersedia
+           </div>
+       `;
+}
 
-    panel.classList.add("open");
-  }
+panel.classList.add("open");
+}
 
 
 function closeDetail(){
-  document.getElementById("detailPanel").classList.remove("open");
-  hasSelectedCustomer = false;
+document.getElementById("detailPanel").classList.remove("open");
+hasSelectedCustomer = false;
 }
 
 function toggleFullMap() {
-  const uiBar = document.getElementById("uiBar");
-  const detailPanel = document.getElementById("detailPanel");
-  const btn = document.getElementById("fullMapBtn");
+const uiBar = document.getElementById("uiBar");
+const detailPanel = document.getElementById("detailPanel");
+const btn = document.getElementById("fullMapBtn");
 
-  isFullMap = !isFullMap;
+isFullMap = !isFullMap;
 
-  if (isFullMap) {
-    // 🔥 MASUK MODE FULL MAP
-    if (uiBar) uiBar.style.display = "none";
-    if (detailPanel) detailPanel.classList.remove("open");
+if (isFullMap) {
+// 🔥 MASUK MODE FULL MAP
+if (uiBar) uiBar.style.display = "none";
+if (detailPanel) detailPanel.classList.remove("open");
 
-    btn.innerText = "📋 SHOW MENU";
-    showToast("🗺️ Mode peta penuh");
+btn.innerText = "📋 SHOW MENU";
+showToast("🗺️ Mode peta penuh");
 
-  } else {
-    // 🔥 KELUAR DARI FULL MAP
-    if (uiBar) uiBar.style.display = "block";
+} else {
+// 🔥 KELUAR DARI FULL MAP
+if (uiBar) uiBar.style.display = "block";
 
-    // hanya tampilkan bottom bar jika ada pelanggan aktif
-    if (hasSelectedCustomer && detailPanel) {
-      detailPanel.classList.add("open");
-    }
+// hanya tampilkan bottom bar jika ada pelanggan aktif
+if (hasSelectedCustomer && detailPanel) {
+detailPanel.classList.add("open");
+}
 
-    btn.innerText = "🗺️ FULL MAP";
-    showToast("📍 Mode normal");
-  }
+btn.innerText = "🗺️ FULL MAP";
+showToast("📍 Mode normal");
+}
 }
 
 
@@ -1321,309 +1299,309 @@ function toggleFullMap() {
 
 
 function toggleCompare(checkbox) {
-  const idpel = window.currentCompareIDPEL;
-  if (!idpel) return;
+ const idpel = window.currentCompareIDPEL;
+ if (!idpel) return;
 
-  if (checkbox.checked) {
-    const active = [];
+ if (checkbox.checked) {
+   const active = [];
 
-    // 🔥 hide semua marker
-    markers.forEach(m => {
-      if (map.hasLayer(m.marker)) {
-        clusterGroup.removeLayer(m.marker);
-      }
-    });
+   // 🔥 hide semua marker
+   markers.forEach(m => {
+     if (map.hasLayer(m.marker)) {
+       clusterGroup.removeLayer(m.marker);
+     }
+   });
 
-    // 🔥 tampilkan hanya marker pelanggan ini
-    markers.forEach(m => {
-      if (String(m.row.IDPEL) === String(idpel)) {
-        addMarkerToMap(m.marker);
-        active.push(m.marker);
-      }
-    });
+   // 🔥 tampilkan hanya marker pelanggan ini
+   markers.forEach(m => {
+     if (String(m.row.IDPEL) === String(idpel)) {
+       addMarkerToMap(m.marker);
+       active.push(m.marker);
+     }
+   });
 
-    // zoom ke 2 marker
-    if (active.length > 0) {
-      const group = L.featureGroup(active);
-      map.fitBounds(group.getBounds(), { padding: [60, 60] });
-    }
+   // zoom ke 2 marker
+   if (active.length > 0) {
+     const group = L.featureGroup(active);
+     map.fitBounds(group.getBounds(), { padding: [60, 60] });
+   }
 
-    showToast("🔍 Mode bandingkan aktif");
-  } else {
-    // 🔥 KEMBALIKAN SESUAI CHECKBOX
-    applyHariBacaFilter();
-    showToast("📍 Semua marker ditampilkan kembali");
-  }
+   showToast("🔍 Mode bandingkan aktif");
+ } else {
+   // 🔥 KEMBALIKAN SESUAI CHECKBOX
+   applyHariBacaFilter();
+   showToast("📍 Semua marker ditampilkan kembali");
+ }
 }
 ====================== */
 
 /* ======================
-   minimize menu saat bandingkan
+  minimize menu saat bandingkan
 ====================== */
 
 function toggleCompare(checkbox) {
-  const idpel = String(window.currentCompareIDPEL || "");
-  if (!idpel) return;
+const idpel = String(window.currentCompareIDPEL || "");
+if (!idpel) return;
 
-  const uiBar = document.getElementById("uiBar");
-  const toggleBtn = document.getElementById("toggleBtn");
+const uiBar = document.getElementById("uiBar");
+const toggleBtn = document.getElementById("toggleBtn");
 
-  if (checkbox.checked) {
-    // =========================
-    // MODE BANDINGKAN ON
-    // =========================
-    window.isCompareMode = true;
+if (checkbox.checked) {
+// =========================
+// MODE BANDINGKAN ON
+// =========================
+window.isCompareMode = true;
 
-    // auto minimize menu
-    if (uiBar && !uiBar.classList.contains("minimized")) {
-      uiBar.classList.add("minimized");
-      if (toggleBtn) toggleBtn.innerText = "➕";
-    }
+// auto minimize menu
+if (uiBar && !uiBar.classList.contains("minimized")) {
+uiBar.classList.add("minimized");
+if (toggleBtn) toggleBtn.innerText = "➕";
+}
 
-    // sembunyikan semua marker
-    markers.forEach(m => {
-      if (clusterGroup.hasLayer(m.marker)) {
-        clusterGroup.removeLayer(m.marker);
-      }
-    });
+// sembunyikan semua marker
+markers.forEach(m => {
+if (clusterGroup.hasLayer(m.marker)) {
+clusterGroup.removeLayer(m.marker);
+}
+});
 
-    // ambil 2 marker milik IDPEL aktif
-    const activeMarkers = markers.filter(
-      m => String(m.row.IDPEL) === idpel
-    );
+// ambil 2 marker milik IDPEL aktif
+const activeMarkers = markers.filter(
+m => String(m.row.IDPEL) === idpel
+);
 
-    // tampilkan hanya marker tsb
-    activeMarkers.forEach(m => {
-      clusterGroup.addLayer(m.marker);
-      setTimeout(() => {
-      renderVisibleMarkers();
-    }, 100);
-    });
+// tampilkan hanya marker tsb
+activeMarkers.forEach(m => {
+clusterGroup.addLayer(m.marker);
+setTimeout(() => {
+renderVisibleMarkers();
+}, 100);
+});
 
-    // zoom ke 2 marker
-    if (activeMarkers.length) {
-      const group = L.featureGroup(activeMarkers.map(m => m.marker));
-      map.flyToBounds(group.getBounds(), {
-        padding: [80, 80],
-        duration: 0.5
-      });
-    }
+// zoom ke 2 marker
+if (activeMarkers.length) {
+const group = L.featureGroup(activeMarkers.map(m => m.marker));
+map.flyToBounds(group.getBounds(), {
+padding: [80, 80],
+duration: 0.5
+});
+}
 
-    showToast("🔍 Mode bandingkan aktif");
+showToast("🔍 Mode bandingkan aktif");
 
-  } else {
-    exitCompareMode();
-  }
+} else {
+exitCompareMode();
+}
 }
 function exitCompareMode() {
-  window.isCompareMode = false;
+window.isCompareMode = false;
 
-  // bersihkan map
-  markers.forEach(m => {
-    if (clusterGroup.hasLayer(m.marker)) {
-      clusterGroup.removeLayer(m.marker);
-    }
-  });
+// bersihkan map
+markers.forEach(m => {
+if (clusterGroup.hasLayer(m.marker)) {
+clusterGroup.removeLayer(m.marker);
+}
+});
 
-  // tampilkan kembali marker SESUAI FILTER
-  applyHariBacaFilter();
+// tampilkan kembali marker SESUAI FILTER
+applyHariBacaFilter();
 
-  // restore menu
-  const uiBar = document.getElementById("uiBar");
-  const toggleBtn = document.getElementById("toggleBtn");
+// restore menu
+const uiBar = document.getElementById("uiBar");
+const toggleBtn = document.getElementById("toggleBtn");
 
-  if (uiBar && uiBar.classList.contains("minimized")) {
-    uiBar.classList.remove("minimized");
-    if (toggleBtn) toggleBtn.innerText = "➖";
-  }
+if (uiBar && uiBar.classList.contains("minimized")) {
+uiBar.classList.remove("minimized");
+if (toggleBtn) toggleBtn.innerText = "➖";
+}
 
-  showToast("📍 Mode bandingkan selesai");
+showToast("📍 Mode bandingkan selesai");
 }
 
 
 function onFinishCompare() {
-  const checkbox = document.getElementById("compareCheckbox");
-  if (checkbox) checkbox.checked = false;
+const checkbox = document.getElementById("compareCheckbox");
+if (checkbox) checkbox.checked = false;
 
-  exitCompareMode();
+exitCompareMode();
 }
 
 
 function minimizeMenu() {
-  const panel = document.getElementById("uiContent");
-  if (!panel) return;
+const panel = document.getElementById("uiContent");
+if (!panel) return;
 
-  panel.classList.add("minimized");
+panel.classList.add("minimized");
 }
-    
+
 /* ======================
-   ROUTING
+  ROUTING
 ====================== */
 function goTo(lat,lng){
-  if(!userLatLng) return alert("GPS belum aktif");
+if(!userLatLng) return alert("GPS belum aktif");
 
-  if(routingControl) map.removeControl(routingControl);
+if(routingControl) map.removeControl(routingControl);
 
-      routingControl = L.Routing.control({
-      waypoints: [L.latLng(userLatLng), L.latLng(lat,lng)],
-      addWaypoints: false,
-      draggableWaypoints: false,
-      createMarker: () => null
-    }).addTo(map);
+routingControl = L.Routing.control({
+waypoints: [L.latLng(userLatLng), L.latLng(lat,lng)],
+addWaypoints: false,
+draggableWaypoints: false,
+createMarker: () => null
+}).addTo(map);
 
 
-  document.getElementById("cancelRouteBtn").style.display="block";
+document.getElementById("cancelRouteBtn").style.display="block";
 }
-  
+
 
 function cancelRoute(){
-  if(routingControl) map.removeControl(routingControl);
-  routingControl = null;
-  document.getElementById("cancelRouteBtn").style.display="none";
+if(routingControl) map.removeControl(routingControl);
+routingControl = null;
+document.getElementById("cancelRouteBtn").style.display="none";
 }
 
 /* ======================
-   DONE + HISTORY
+  DONE + HISTORY
 ====================== */
 function markDone(idpel){
 
-  if (window.isCompareMode) {
-  const cb = document.querySelector('#detailPanel input[type="checkbox"]');
-  if (cb) cb.checked = false;
-  exitCompareMode();
+if (window.isCompareMode) {
+const cb = document.querySelector('#detailPanel input[type="checkbox"]');
+if (cb) cb.checked = false;
+exitCompareMode();
 }
 
 
-  idpel = String(idpel);
+idpel = String(idpel);
 
-  // 1️⃣ ambil data pelanggan
-  const found = workingRows.find(r => String(r.IDPEL) === idpel);
-  if (!found) return;
+// 1️⃣ ambil data pelanggan
+const found = workingRows.find(r => String(r.IDPEL) === idpel);
+if (!found) return;
 
-  // 2️⃣ simpan ke history
-  history.push({
-    row: found,
-    time: new Date().toLocaleTimeString("id-ID")
-  });
-  localStorage.setItem("oyon_history", JSON.stringify(history));
+// 2️⃣ simpan ke history
+history.push({
+row: found,
+time: new Date().toLocaleTimeString("id-ID")
+});
+localStorage.setItem("oyon_history", JSON.stringify(history));
 
-  // 3️⃣ hapus dari workingRows
-  workingRows = workingRows.filter(r => String(r.IDPEL) !== idpel);
-  saveState();
+// 3️⃣ hapus dari workingRows
+workingRows = workingRows.filter(r => String(r.IDPEL) !== idpel);
+saveState();
 
-  // 4️⃣ HAPUS MARKER DIJ + DIL DENGAN IDPEL YANG SAMA
-  markers = markers.filter(obj => {
-    if (String(obj.row.IDPEL) === idpel) {
-      if (map.hasLayer(obj.marker)) {
-        clusterGroup.removeLayer(obj.marker);
-      }
-      return false; // buang dari array
-    }
-    return true;
-  });
+// 4️⃣ HAPUS MARKER DIJ + DIL DENGAN IDPEL YANG SAMA
+markers = markers.filter(obj => {
+if (String(obj.row.IDPEL) === idpel) {
+if (map.hasLayer(obj.marker)) {
+clusterGroup.removeLayer(obj.marker);
+}
+return false; // buang dari array
+}
+return true;
+});
 
-  // 5️⃣ update UI
-  renderHistory();
-  closeDetail();
+// 5️⃣ update UI
+renderHistory();
+closeDetail();
 
-  showToast("✅ Pelanggan ditandai selesai");
+showToast("✅ Pelanggan ditandai selesai");
 }
 
 /* ======================
-   DONE + HISTORY
+  DONE + HISTORY
 ====================== */
 function renderHistory() {
-  const el = document.getElementById("historyList");
-  if (!el) return;
+const el = document.getElementById("historyList");
+if (!el) return;
 
-  if (!history || history.length === 0) {
-    el.innerHTML = `
-      <div style="padding:10px;color:#666;text-align:center">
-        📭 Belum ada pelanggan selesai hari ini
-      </div>`;
-    return;
-  }
+if (!history || history.length === 0) {
+el.innerHTML = `
+     <div style="padding:10px;color:#666;text-align:center">
+       📭 Belum ada pelanggan selesai hari ini
+     </div>`;
+return;
+}
 
-  el.innerHTML = history.map((item, index) => `
+el.innerHTML = history.map((item, index) => `
 
-  <div style="
-    border-bottom:1px solid #eee;
-    padding:8px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-  ">
+ <div style="
+   border-bottom:1px solid #eee;
+   padding:8px;
+   display:flex;
+   justify-content:space-between;
+   align-items:center;
+ ">
 
-    <div>
+   <div>
 
-      <strong>${item.row.NAMA || "-"}</strong><br>
+     <strong>${item.row.NAMA || "-"}</strong><br>
 
-      NOMET: ${getNoMeter(item.row)}<br>
+     NOMET: ${getNoMeter(item.row)}<br>
 
-      MERK: ${getMerkMeter(item.row)}<br>
+     MERK: ${getMerkMeter(item.row)}<br>
 
-      HARI BACA: ${getHariBaca(item.row)}<br>
+     HARI BACA: ${getHariBaca(item.row)}<br>
 
-      <small>${item.time}</small>
+     <small>${item.time}</small>
 
-    </div>
+   </div>
 
-    <button
-      onclick="undoHistory(${index})"
-      style="
-        background:#2563eb;
-        color:white;
-        border:none;
-        padding:6px 10px;
-        border-radius:8px;
-        font-size:12px;
-      "
-    >
-      Undo
-    </button>
+   <button
+     onclick="undoHistory(${index})"
+     style="
+       background:#2563eb;
+       color:white;
+       border:none;
+       padding:6px 10px;
+       border-radius:8px;
+       font-size:12px;
+     "
+   >
+     Undo
+   </button>
 
-  </div>
+ </div>
 
 `).join("");
 }
 
 
 function undoHistory(index) {
-  const item = history[index];
-  if (!item) return;
+const item = history[index];
+if (!item) return;
 
-  // keluar dari compare mode
-  if (window.isCompareMode) {
-    const cb = document.getElementById("compareCheckbox");
-    if (cb) cb.checked = false;
-    exitCompareMode();
-  }
+// keluar dari compare mode
+if (window.isCompareMode) {
+const cb = document.getElementById("compareCheckbox");
+if (cb) cb.checked = false;
+exitCompareMode();
+}
 
-  // kembalikan data
-  workingRows.push(item.row);
-  saveState();
+// kembalikan data
+workingRows.push(item.row);
+saveState();
 
-  // hapus dari history
-  history.splice(index, 1);
-  localStorage.setItem("oyon_history", JSON.stringify(history));
+// hapus dari history
+history.splice(index, 1);
+localStorage.setItem("oyon_history", JSON.stringify(history));
 
-  // 🔥 REBUILD DULU (INI KUNCI)
-  buildMarkers();
+// 🔥 REBUILD DULU (INI KUNCI)
+buildMarkers();
 
-  // 🔁 BARU SET FILTER HARI BACA
-  const hariUndo = getHariBaca(item.row);
-  const idx = daftarHariBaca.indexOf(hariUndo);
+// 🔁 BARU SET FILTER HARI BACA
+const hariUndo = getHariBaca(item.row);
+const idx = daftarHariBaca.indexOf(hariUndo);
 
-  if (idx !== -1) {
-    filterHariBacaAktif = true;
-    indexHariBaca = idx;
-  }
+if (idx !== -1) {
+filterHariBacaAktif = true;
+indexHariBaca = idx;
+}
 
-  // 🔥 APPLY SETELAH STATE SIAP
-  applyHariBacaFilter();
+// 🔥 APPLY SETELAH STATE SIAP
+applyHariBacaFilter();
 
-  renderHistory();
-  showToast(`↩️ Dikembalikan ke HARI BACA ${hariUndo}`);
+renderHistory();
+showToast(`↩️ Dikembalikan ke HARI BACA ${hariUndo}`);
 }
 
 
@@ -1631,135 +1609,147 @@ function undoHistory(index) {
 
 
 /* ======================
-   TAMPILAN KEMBALI KE AREA TAGGING
+  TAMPILAN KEMBALI KE AREA TAGGING
 ====================== */
 
 function saveMapView() {
-  const center = map.getCenter();
-  const zoom = map.getZoom();
+const center = map.getCenter();
+const zoom = map.getZoom();
 
-  localStorage.setItem("RBM_MAP_VIEW", JSON.stringify({
-    lat: center.lat,
-    lng: center.lng,
-    zoom: zoom
-  }));
+localStorage.setItem("RBM_MAP_VIEW", JSON.stringify({
+lat: center.lat,
+lng: center.lng,
+zoom: zoom
+}));
 }
 
 function restoreMapView() {
-  const savedView = localStorage.getItem("RBM_MAP_VIEW");
+const savedView = localStorage.getItem("RBM_MAP_VIEW");
 
-  if (savedView) {
-    const view = JSON.parse(savedView);
-    map.setView([view.lat, view.lng], view.zoom);
-  } else {
-    zoomToAllMarkers(); // fallback
-  }
+if (savedView) {
+const view = JSON.parse(savedView);
+map.setView([view.lat, view.lng], view.zoom);
+} else {
+zoomToAllMarkers(); // fallback
+}
 }
 
 
 /* ======================
-   reset history 23.00
+  reset history 23.00
 ====================== */
 
 
 
 function copyNomet(nomet){
-  if (!nomet) return;
+if (!nomet) return;
 
-  navigator.clipboard.writeText(nomet)
-    .then(() => showToast("📋 Nomor meter disalin"))
-    .catch(() => showToast("❌ Gagal menyalin"));
+navigator.clipboard.writeText(nomet)
+.then(() => showToast("📋 Nomor meter disalin"))
+.catch(() => showToast("❌ Gagal menyalin"));
 }
 
 function copyIDPEL(idpel){
 
-  if (!idpel) return;
+if (!idpel) return;
 
-  navigator.clipboard.writeText(idpel)
-    .then(() => showToast("📋 IDPEL disalin"))
-    .catch(() => showToast("❌ Gagal menyalin IDPEL"));
+navigator.clipboard.writeText(idpel)
+.then(() => showToast("📋 IDPEL disalin"))
+.catch(() => showToast("❌ Gagal menyalin IDPEL"));
 }
 
 /* ======================
-   COPY ENGINE
+  COPY ENGINE
 ====================== */
 
 /* ======================
-   COPY ENGINE AMAN
+  COPY ENGINE AMAN
 ====================== */
 
 function copyText(text, label = "Data") {
-  const value = String(text ?? "").trim();
+const value = String(text ?? "").trim();
 
-  if (!value || value === "-") {
-    showToast(`❌ ${label} kosong`);
-    return;
-  }
+if (!value || value === "-") {
+showToast(`❌ ${label} kosong`);
+return;
+}
 
-  // Clipboard API utama
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(value)
-      .then(() => {
-        showToast(`📋 ${label} berhasil disalin`);
-      })
-      .catch(() => {
-        fallbackCopyText(value, label);
-      });
+// Clipboard API utama
+if (navigator.clipboard && window.isSecureContext) {
+navigator.clipboard.writeText(value)
+.then(() => {
+showToast(`📋 ${label} berhasil disalin`);
+})
+.catch(() => {
+fallbackCopyText(value, label);
+});
 
-    return;
-  }
+return;
+}
 
-  // Fallback untuk localhost/browser lama
-  fallbackCopyText(value, label);
+// Fallback untuk localhost/browser lama
+fallbackCopyText(value, label);
 }
 
 
 function fallbackCopyText(value, label) {
-  const textarea = document.createElement("textarea");
+const textarea = document.createElement("textarea");
 
-  textarea.value = value;
-  textarea.style.position = "fixed";
-  textarea.style.opacity = "0";
+textarea.value = value;
+textarea.style.position = "fixed";
+textarea.style.opacity = "0";
 
-  document.body.appendChild(textarea);
+document.body.appendChild(textarea);
 
-  textarea.focus();
-  textarea.select();
+textarea.focus();
+textarea.select();
 
-  try {
-    const success = document.execCommand("copy");
+try {
+const success = document.execCommand("copy");
 
-    if (success) {
-      showToast(`📋 ${label} berhasil disalin`);
-    } else {
-      showToast(`❌ Gagal menyalin ${label}`);
-    }
-  } catch (error) {
-    showToast(`❌ Gagal menyalin ${label}`);
-  }
+if (success) {
+showToast(`📋 ${label} berhasil disalin`);
+} else {
+showToast(`❌ Gagal menyalin ${label}`);
+}
+} catch (error) {
+showToast(`❌ Gagal menyalin ${label}`);
+}
 
-  document.body.removeChild(textarea);
+document.body.removeChild(textarea);
 }
 
 /* ======================
-   TOAST
+  TOAST
 ====================== */
 function showToast(msg){
-  const t = document.getElementById("toast");
-  t.innerHTML = msg;
-  t.classList.add("show");
-  setTimeout(()=>t.classList.remove("show"),5000);
+const t = document.getElementById("toast");
+t.innerHTML = msg;
+t.classList.add("show");
+setTimeout(()=>t.classList.remove("show"),5000);
 }
 /* ======================
-   FINISH DAN SIMPAN RBM UPDATE
+  FINISH DAN SIMPAN RBM UPDATE
 ====================== */
 downloadBtn.onclick = () => {
-  if (workingRows.length === 0) {
-    showToast("⚠️ Tidak ada data untuk diunduh");
-    return;
-  }
+if (workingRows.length === 0) {
+showToast("⚠️ Tidak ada data untuk diunduh");
+return;
+}
 
-  // Ambil KODE PETUGAS dari baris pertama
+// Ambil KODE PETUGAS dari baris pertama
+  const kodePetugas = (workingRows[0]["KODE PETUGAS"] || "UNKNOWN")
+    .toString()
+    .replace(/\s+/g, "_");
+
+  // Buat timestamp
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+
+  const filename = `RBM_${kodePetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
   // Ambil nama PETUGAS dari baris pertama
 const namaPetugas = (
   workingRows[0]["PETUGAS"] ||
@@ -1781,115 +1771,160 @@ const min = String(now.getMinutes()).padStart(2, "0");
 
 const filename = `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
-  // ===== CLEAN EXPORT ENGINE =====
+// ===== CLEAN EXPORT ENGINE =====
 
-// ===== EXPORT SEMUA KOLOM ASLI =====
-// Jangan membuat kolom manual agar kolom Excel tidak hilang.
+const cleanRows = workingRows.map(r => ({
 
-const cleanRows = workingRows.map(r => {
+NO: r.NO || "",
 
-  // Salin seluruh kolom asli dari Excel
-  const row = { ...r };
+IDPEL: r.IDPEL || "",
 
-  // Perbarui hanya kolom GPS yang memang diubah aplikasi
-  row["LAT DIJ"] = getDIJLat(r);
-  row["LON DIJ"] = getDIJLon(r);
-  row["LAT DIL"] = getDILLat(r);
-  row["LON DIL"] = getDILLon(r);
+NAMA: r.NAMA || "",
 
-  return row;
+NIK: r.NIK || "",
+
+KDDK:
+r.KDDK ||
+r["KDDK ACMT"] ||
+"",
+
+MEREKKWH:
+r.MEREKKWH ||
+r.MERK ||
+"",
+
+NOMORKWH:
+r.NOMORKWH ||
+r["NOMOR METER"] ||
+"",
+
+DAYA: r.DAYA || "",
+
+ALAMAT: r.ALAMAT || "",
+
+"LAT DIJ": getDIJLat(r),
+
+"LON DIJ": getDIJLon(r),
+
+"LAT DIL": getDILLat(r),
+
+"LON DIL": getDILLon(r)
+
+}));
+
+// Generate Excel
+const ws =
+XLSX.utils.json_to_sheet(cleanRows);
+
+const wb =
+XLSX.utils.book_new();
+
+wb.Props = {
+Title: "OYONID MAP EXPORT"
+};
+
+XLSX.utils.book_append_sheet(
+wb,
+ws,
+"RBM Update"
+);
+
+XLSX.writeFile(wb, filename, {
+compression: true
 });
+};
+
 
 /* ======================
-   GPS
+  GPS
 ====================== */
 navigator.geolocation?.watchPosition(pos => {
-  userLatLng = [pos.coords.latitude, pos.coords.longitude];
+userLatLng = [pos.coords.latitude, pos.coords.longitude];
 
-  const icon = L.divIcon({
-    html: `
-      <div class="petugas-marker">
-        <img src="https://cdn-icons-png.flaticon.com/512/4140/4140048.png" />
-      </div>
-    `,
-    iconSize: [38,38],
-    iconAnchor: [19,19],
-    className: ""
-  });
+const icon = L.divIcon({
+html: `
+     <div class="petugas-marker">
+       <img src="https://cdn-icons-png.flaticon.com/512/4140/4140048.png" />
+     </div>
+   `,
+iconSize: [38,38],
+iconAnchor: [19,19],
+className: ""
+});
 
-  if (!petugasMarker) {
-    petugasMarker = L.marker(userLatLng, { icon }).addTo(map);
-    petugasMarker.bindTooltip("📍 Lokasi Anda", {
-      permanent: false,
-      direction: "top"
-    });
-  } else {
-    petugasMarker.setLatLng(userLatLng);
-  }
+if (!petugasMarker) {
+petugasMarker = L.marker(userLatLng, { icon }).addTo(map);
+petugasMarker.bindTooltip("📍 Lokasi Anda", {
+permanent: false,
+direction: "top"
+});
+} else {
+petugasMarker.setLatLng(userLatLng);
+}
 
 }, err => {
-  console.warn("GPS error:", err);
+console.warn("GPS error:", err);
 }, {
-  enableHighAccuracy: true,
-  maximumAge: 1000,
-  timeout: 10000
+enableHighAccuracy: true,
+maximumAge: 1000,
+timeout: 10000
 });
 
 /* ======================
-   COLOR MAP
+  COLOR MAP
 ====================== */
 /* ======================
-   COLOR MAP — A–Z UNIK
+  COLOR MAP — A–Z UNIK
 ====================== */
 function getColor(v){
-  const colors = [
-    "#22c55e", // A
-    "#f97316", // B
-    "#3b82f6", // C
-    "#ef4444", // D
-    "#a855f7", // E
-    "#14b8a6", // F
-    "#eab308", // G
-    "#ec4899", // H
-    "#6366f1", // I
-    "#84cc16", // J
-    "#06b6d4", // K
-    "#f43f5e", // L
-    "#7c3aed", // M
-    "#f59e0b", // N
-    "#0ea5e9", // O
-    "#10b981", // P
-    "#db2777", // Q
-    "#65a30d", // R
-    "#0284c7", // S
-    "#dc2626", // T
-    "#9333ea", // U
-    "#059669", // V
-    "#ca8a04", // W
-    "#be123c", // X
-    "#2563eb", // Y
-    "#0891b2"  // Z
-  ];
+const colors = [
+"#22c55e", // A
+"#f97316", // B
+"#3b82f6", // C
+"#ef4444", // D
+"#a855f7", // E
+"#14b8a6", // F
+"#eab308", // G
+"#ec4899", // H
+"#6366f1", // I
+"#84cc16", // J
+"#06b6d4", // K
+"#f43f5e", // L
+"#7c3aed", // M
+"#f59e0b", // N
+"#0ea5e9", // O
+"#10b981", // P
+"#db2777", // Q
+"#65a30d", // R
+"#0284c7", // S
+"#dc2626", // T
+"#9333ea", // U
+"#059669", // V
+"#ca8a04", // W
+"#be123c", // X
+"#2563eb", // Y
+"#0891b2"  // Z
+];
 
-  if (!v) return "#64748b";
+if (!v) return "#64748b";
 
-  const code = v.toUpperCase().charCodeAt(0) - 65;
-  return colors[code] || "#64748b";
+const code = v.toUpperCase().charCodeAt(0) - 65;
+return colors[code] || "#64748b";
 }
 
 
 renderHistory();
 window.addEventListener("DOMContentLoaded", () => {
 
-  function openHistory(){
-  const panel = document.getElementById("historyPanel");
-  panel.style.display = "block";
-  renderHistory();
+function openHistory(){
+const panel = document.getElementById("historyPanel");
+panel.style.display = "block";
+renderHistory();
 }
 
 function closeHistory(){
-  const panel = document.getElementById("historyPanel");
-  panel.style.display = "none";
+const panel = document.getElementById("historyPanel");
+panel.style.display = "none";
 }
 
 document.getElementById("historyToggleBtn").onclick = openHistory;
@@ -1897,16 +1932,16 @@ document.getElementById("historyToggleBtn").onclick = openHistory;
 
 });
 /* ======================
-   minimize btn
+  minimize btn
 ====================== */
 window.addEventListener("DOMContentLoaded", () => {
-  const uiBar = document.getElementById("uiBar");
-  const toggleBtn = document.getElementById("toggleBtn");
+const uiBar = document.getElementById("uiBar");
+const toggleBtn = document.getElementById("toggleBtn");
 
-  toggleBtn.onclick = () => {
-    uiBar.classList.toggle("minimized");
-    toggleBtn.innerText = uiBar.classList.contains("minimized") ? "➕" : "➖";
-  };
+toggleBtn.onclick = () => {
+uiBar.classList.toggle("minimized");
+toggleBtn.innerText = uiBar.classList.contains("minimized") ? "➕" : "➖";
+};
 
-  document.getElementById("fullMapBtn").onclick = toggleFullMap;
+document.getElementById("fullMapBtn").onclick = toggleFullMap;
 });
