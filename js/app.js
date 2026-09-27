@@ -150,7 +150,6 @@ function getNoMeter(row){
 
   return (
     row.NOMORKWH ||
-    row.NOMORMETER ||
     row.NOMET ||
     row.NO_METER ||
     row.NOMETER ||
@@ -161,21 +160,23 @@ function getNoMeter(row){
 
 function getMerkMeter(row){
 
-  return (
+  const value =
     row.MEREKKWH ||
-    row.MERKKWH ||
+    row["MEREK KWH"] ||
+    row["MERK KWH"] ||
     row.MERK ||
     row.MERKMETER ||
-    row.MEREKMETER ||
-    "-"
-  );
+    row["MEREK METER"] ||
+    row["MERK METER"] ||
+    "";
+
+  return String(value).trim() || "-";
 
 }
 
 function getKDDK(row){
 
   return (
-    row.KDDK ||
     row.KDDK ||
     row.KODEDK ||
     row.KODUK ||
@@ -347,8 +348,13 @@ const rawExcel = XLSX.utils.sheet_to_json(sheet, {
 });
 
 originalHeaders = rawExcel.length > 0
-  ? rawExcel[0]
+  ? rawExcel[0].map(h => String(h).trim())
   : [];
+
+localStorage.setItem(
+  "OYONID_ORIGINAL_HEADERS",
+  JSON.stringify(originalHeaders)
+);
 
 // Baca data seperti sebelumnya
 originalRows = XLSX.utils.sheet_to_json(sheet, {
@@ -402,6 +408,15 @@ window.addEventListener("load", () => {
   }
 
   const saved = localStorage.getItem(STORAGE_KEY);
+
+  const savedHeaders = localStorage.getItem("OYONID_ORIGINAL_HEADERS");
+  if (savedHeaders) {
+    try {
+      originalHeaders = JSON.parse(savedHeaders);
+    } catch (e) {
+      originalHeaders = [];
+    }
+  }
 
   if (saved) {
     workingRows = JSON.parse(saved);
@@ -1810,6 +1825,15 @@ downloadBtn.onclick = () => {
     `RBM_${namaPetugas}_${dd}-${mm}_${hh}-${min}.xlsx`;
 
   // ===== EXPORT SEMUA KOLOM ASLI =====
+
+// Jika header hilang karena state lama, bangun dari data yang sedang aktif.
+if (!Array.isArray(originalHeaders) || originalHeaders.length === 0) {
+  const headerSet = new Set();
+  workingRows.forEach(row => {
+    Object.keys(row || {}).forEach(key => headerSet.add(key));
+  });
+  originalHeaders = [...headerSet];
+}
 
 // Pastikan setiap baris mengikuti urutan kolom Excel asli
 const exportData = workingRows.map(row => {
