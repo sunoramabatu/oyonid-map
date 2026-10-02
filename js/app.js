@@ -230,6 +230,326 @@ const zoomBtn = document.getElementById("zoomBtn");
 const downloadBtn = document.getElementById("downloadBtn");
 
 /* ======================
+   BARCODE SCANNER
+   Scan nomor meter -> isi Search -> jalankan pencarian
+====================== */
+
+let barcodeStream = null;
+let barcodeScannerOpen = false;
+let barcodeScanBusy = false;
+let barcodeDetector = null;
+
+function addBarcodeScanButton() {
+
+  if (!searchBtn || !searchInput) return;
+  if (document.getElementById("barcodeScanBtn")) return;
+
+  const btn = document.createElement("button");
+  btn.id = "barcodeScanBtn";
+  btn.type = "button";
+  btn.innerHTML = "📷";
+  btn.title = "Scan barcode nomor meter";
+  btn.setAttribute("aria-label", "Scan barcode nomor meter");
+
+  btn.style.cssText = `
+    margin-left:6px;
+    width:44px;
+    height:40px;
+    border:none;
+    border-radius:10px;
+    background:#2563eb;
+    color:white;
+    font-size:20px;
+    cursor:pointer;
+    vertical-align:middle;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+  `;
+
+  btn.onclick = openBarcodeScanner;
+
+  // Tombol ditempatkan tepat di sebelah tombol CARI.
+  searchBtn.insertAdjacentElement("afterend", btn);
+}
+
+function createBarcodeScannerUI() {
+
+  const old = document.getElementById("barcodeScannerModal");
+  if (old) old.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "barcodeScannerModal";
+
+  modal.innerHTML = `
+    <div style="
+      position:fixed;
+      inset:0;
+      z-index:99999;
+      background:rgba(0,0,0,.92);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      box-sizing:border-box;
+    ">
+
+      <div style="
+        width:min(92vw,430px);
+        color:white;
+        text-align:center;
+        font-weight:700;
+        font-size:18px;
+        margin-bottom:14px;
+      ">
+        📷 Scan Nomor Meter
+      </div>
+
+      <div style="
+        position:relative;
+        width:min(92vw,430px);
+        aspect-ratio:4/3;
+        background:#111;
+        border-radius:16px;
+        overflow:hidden;
+        border:2px solid rgba(255,255,255,.35);
+      ">
+
+        <video
+          id="barcodeVideo"
+          autoplay
+          muted
+          playsinline
+          style="
+            width:100%;
+            height:100%;
+            object-fit:cover;
+          "
+        ></video>
+
+        <div style="
+          position:absolute;
+          left:8%;
+          right:8%;
+          top:50%;
+          height:2px;
+          background:#22c55e;
+          box-shadow:0 0 12px #22c55e;
+        "></div>
+
+        <div style="
+          position:absolute;
+          left:8%;
+          right:8%;
+          top:25%;
+          bottom:25%;
+          border:2px solid rgba(255,255,255,.75);
+          border-radius:10px;
+          pointer-events:none;
+        "></div>
+
+      </div>
+
+      <div id="barcodeScannerStatus" style="
+        color:white;
+        text-align:center;
+        margin-top:14px;
+        font-size:14px;
+        max-width:430px;
+      ">
+        Arahkan kamera ke barcode nomor meter
+      </div>
+
+      <button
+        id="barcodeCloseBtn"
+        type="button"
+        style="
+          margin-top:18px;
+          width:min(92vw,430px);
+          height:46px;
+          border:0;
+          border-radius:12px;
+          background:#ef4444;
+          color:white;
+          font-size:16px;
+          font-weight:700;
+        "
+      >
+        ✕ Tutup Scanner
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  document
+    .getElementById("barcodeCloseBtn")
+    .onclick = closeBarcodeScanner;
+
+  return modal;
+}
+
+async function openBarcodeScanner() {
+
+  if (barcodeScannerOpen) return;
+
+  if (!("BarcodeDetector" in window)) {
+    showToast("⚠️ Browser ini belum mendukung scanner barcode bawaan");
+    return;
+  }
+
+  barcodeScannerOpen = true;
+  barcodeScanBusy = false;
+
+  createBarcodeScannerUI();
+
+  const video = document.getElementById("barcodeVideo");
+  const status = document.getElementById("barcodeScannerStatus");
+
+  try {
+
+    let formats = [
+      "code_128",
+      "code_39",
+      "ean_13",
+      "ean_8",
+      "upc_a",
+      "upc_e",
+      "itf",
+      "codabar"
+    ];
+
+    // Beberapa browser hanya menerima format yang benar-benar tersedia.
+    if (BarcodeDetector.getSupportedFormats) {
+      const supported = await BarcodeDetector.getSupportedFormats();
+      formats = formats.filter(f => supported.includes(f));
+    }
+
+    if (!formats.length) {
+      throw new Error("Tidak ada format barcode yang didukung browser");
+    }
+
+    barcodeDetector = new BarcodeDetector({ formats });
+
+    barcodeStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    video.srcObject = barcodeStream;
+
+    await video.play();
+
+    status.innerText =
+      "Arahkan kamera ke barcode nomor meter...";
+
+    scanBarcodeFrame();
+
+  } catch (err) {
+
+    console.error("Barcode scanner error:", err);
+
+    status.innerText =
+      "❌ Kamera tidak bisa digunakan. Pastikan izin kamera diberikan.";
+
+    showToast("❌ Kamera tidak dapat dibuka");
+
+    setTimeout(() => {
+      if (barcodeScannerOpen) closeBarcodeScanner();
+    }, 2200);
+  }
+}
+
+async function scanBarcodeFrame() {
+
+  if (!barcodeScannerOpen || !barcodeDetector) return;
+
+  const video = document.getElementById("barcodeVideo");
+
+  if (!video || video.readyState < 2) {
+    requestAnimationFrame(scanBarcodeFrame);
+    return;
+  }
+
+  if (barcodeScanBusy) {
+    requestAnimationFrame(scanBarcodeFrame);
+    return;
+  }
+
+  barcodeScanBusy = true;
+
+  try {
+
+    const codes = await barcodeDetector.detect(video);
+
+    if (codes && codes.length) {
+
+      const rawValue = String(codes[0].rawValue || "").trim();
+
+      if (rawValue) {
+
+        // Nomor meter biasanya numerik.
+        // Jika barcode memiliki karakter lain, search engine
+        // akan membersihkannya sendiri.
+        searchInput.value = rawValue;
+
+        closeBarcodeScanner();
+
+        showToast("✅ Barcode terbaca: " + rawValue);
+
+        // Jalankan pencarian otomatis.
+        setTimeout(() => {
+          runSearch();
+        }, 250);
+
+        return;
+      }
+    }
+
+  } catch (err) {
+    console.warn("Barcode detect:", err);
+  } finally {
+    barcodeScanBusy = false;
+  }
+
+  requestAnimationFrame(scanBarcodeFrame);
+}
+
+function closeBarcodeScanner() {
+
+  barcodeScannerOpen = false;
+  barcodeDetector = null;
+  barcodeScanBusy = false;
+
+  if (barcodeStream) {
+
+    barcodeStream.getTracks().forEach(track => {
+      track.stop();
+    });
+
+    barcodeStream = null;
+  }
+
+  const video = document.getElementById("barcodeVideo");
+
+  if (video) {
+    video.srcObject = null;
+  }
+
+  document
+    .getElementById("barcodeScannerModal")
+    ?.remove();
+}
+
+// Tambahkan tombol setelah elemen search tersedia.
+addBarcodeScanButton();
+
+
+/* ======================
    INIT MAP
 ====================== */
 const map = L.map("map", {
