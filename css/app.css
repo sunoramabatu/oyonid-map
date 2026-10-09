@@ -517,4 +517,86 @@
 
 
 
+/* Urutan baca: marker dibuat inline agar tetap terbaca di berbagai zoom */
+.urutan-baca-marker { background: transparent !important; border: 0 !important; }
 
+/* Marker pelanggan: jelas, bisa diklik, dan berada di atas marker petugas */
+.urutan-baca-marker { z-index: 720 !important; pointer-events: auto !important; }
+.urutan-baca-marker > div { cursor: pointer; }
+.leaflet-marker-pane { pointer-events: auto; }
+
+
+/* OYONID Local V3: ringkas dan ramah petugas */
+.top-actions { display:flex; gap:6px; align-items:stretch; width:100%; position:relative; z-index:1200; margin-bottom:5px; }
+#uploadExcelBtn { flex:1; width:auto; margin:0; border-radius:9px; min-height:36px; }
+.column-mapping-menu { position:relative; flex:0 0 auto; }
+.column-mapping-menu > summary { list-style:none; cursor:pointer; width:auto; min-height:36px; display:flex; align-items:center; justify-content:center; margin:0; border-radius:9px; white-space:nowrap; background:#334155; }
+.column-mapping-menu > summary::-webkit-details-marker { display:none; }
+.column-mapping-popover { position:absolute; top:calc(100% + 6px); right:0; width:min(260px, 78vw); max-height:60vh; overflow-y:auto; padding:12px; background:#fff; border:1px solid #dbe3ef; border-radius:12px; box-shadow:0 12px 32px rgba(15,23,42,.24); z-index:15000; }
+.mapping-help { font-size:11px; line-height:1.4; color:#64748b; margin-bottom:9px; }
+.order-toggle { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin:8px 0; padding:9px 10px; border:1px solid #dbe3ef; border-radius:10px; background:#fff; font-size:13px; font-weight:700; }
+.order-toggle small { width:100%; padding-left:24px; color:#64748b; font-size:10px; font-weight:400; }
+.welcome-message { white-space:pre-line; margin:7px 0; padding:10px 11px; border-radius:10px; color:#14532d; background:linear-gradient(135deg,#dcfce7,#f0fdf4); border:1px solid #bbf7d0; font-size:12px; line-height:1.45; font-weight:600; }
+.scan-camera-icon { font-size:18px; line-height:20px; }
+.scan-caption { font-size:8px; line-height:11px; font-weight:700; white-space:nowrap; }
+#historyPanel { overflow:hidden !important; padding:0; display:flex; flex-direction:column; }
+.history-header { position:sticky; top:0; flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:12px 44px 10px 14px; background:#fff; border-bottom:1px solid #e5e7eb; z-index:20; }
+#historyList { overflow-y:auto; min-height:0; max-height:calc(60vh - 52px); padding:10px 14px 14px; overscroll-behavior:contain; }
+.close-history { position:absolute; top:9px; right:10px; z-index:30; flex:0 0 auto; }
+.leaflet-tooltip-pane { z-index:10000 !important; }
+.marker-label-top { position:relative; z-index:10001 !important; font-size:13px !important; font-weight:800 !important; padding:6px 9px !important; border:1px solid #0f172a !important; border-radius:8px !important; box-shadow:0 5px 18px rgba(0,0,0,.32) !important; color:#111827 !important; background:#fff !important; }
+.ui-bar { border-radius:12px !important; box-shadow:0 6px 24px rgba(15,23,42,.2) !important; }
+.ui-btn { border-radius:9px; }
+@media (max-width:480px) { .column-mapping-popover { width:min(245px, 75vw); } #uiBar { max-width:270px; } }
+
+
+/* OYONID Local V4: tooltip marker benar-benar di atas semua marker */
+.leaflet-customerTooltipPane { z-index: 12000 !important; pointer-events: none !important; }
+.leaflet-tooltip-pane { z-index: 12000 !important; }
+.marker-label-top { z-index: 12001 !important; position: relative; }
+/* Menu kolom menjadi popover tetap, tidak terpotong panel/sidebar atau area scroll */
+.column-mapping-popover {
+  position: fixed !important;
+  top: 92px !important;
+  left: 12px !important;
+  right: auto !important;
+  width: min(320px, calc(100vw - 24px)) !important;
+  max-height: calc(100vh - 112px) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  z-index: 20000 !important;
+  box-sizing: border-box;
+}
+#columnMappingFields { grid-template-columns: 1fr !important; gap: 8px !important; }
+#columnMappingFields label { display:block; min-width:0; font-size:12px !important; font-weight:600; }
+#columnMappingFields select { box-sizing:border-box; width:100%; min-height:34px; }
+.welcome-message {
+  position: fixed !important;
+  top: 16px !important;
+  left: 50% !important;
+  transform: translate(-50%, -10px) scale(.98);
+  z-index: 30000 !important;
+  width: min(420px, calc(100vw - 32px));
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 13px 16px !important;
+  border-radius: 14px !important;
+  color: #14532d !important;
+  background: rgba(240,253,244,.97) !important;
+  border: 1px solid #86efac !important;
+  box-shadow: 0 12px 36px rgba(15,23,42,.24) !important;
+  text-align: center;
+  opacity: 0;
+  transition: opacity .25s ease, transform .25s ease;
+  pointer-events: none;
+}
+.welcome-message.welcome-visible { opacity: 1; transform: translate(-50%, 0) scale(1); }
+/* Checkbox urutan baca mengikuti gaya checkbox Lokasi DIJ/Cadangan */
+.order-toggle { display:none !important; }
+@media (max-width:480px) {
+  .column-mapping-popover { top: 88px !important; left: 8px !important; width: min(310px, calc(100vw - 16px)) !important; }
+  .welcome-message { top: 10px !important; }
+}
+
+.chk { display:flex; align-items:center; gap:6px; margin:4px 0; font-size:12px; line-height:1.3; cursor:pointer; }
+.chk input[type="checkbox"] { width:15px; height:15px; margin:0; flex:0 0 auto; accent-color:#2563eb; }
