@@ -34,14 +34,21 @@ href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.c
   <!-- KONTEN (yang boleh di-hide) -->
   <div id="uiContent">
 
-    <input type="file" id="upload" accept=".xlsx,.xls" style="display:none;" />
-    <button class="ui-btn small-btn" onclick="document.getElementById('upload').click()">
-      📂 Upload Excel
-    </button>
-
+    <div class="top-actions">
+      <input type="file" id="upload" accept=".xlsx,.xls" style="display:none;" />
+      <button class="ui-btn small-btn" id="uploadExcelBtn" onclick="document.getElementById('upload').click()">📂 Upload Excel</button>
+      <details id="columnMappingPanel" class="column-mapping-menu">
+        <summary class="ui-btn small-btn">⚙️ Kolom Excel</summary>
+        <div class="column-mapping-popover">
+          <div class="mapping-help">Pilih judul kolom yang sesuai jika nama di Excel berbeda. Opsi terisi setelah Excel diunggah.</div>
+          <div id="columnMappingFields" style="display:grid;grid-template-columns:1fr;gap:7px;"></div>
+          <button type="button" id="applyColumnMappingBtn" class="ui-btn small-btn" style="margin-top:8px;width:100%;">Terapkan Judul Kolom</button>
+        </div>
+      </details>
+    </div>
     <div id="fileNameLabel" style="font-size:12px;color:#555;"></div>
-
     <div id="statusText"></div>
+    <div id="welcomeMessage" class="welcome-message" style="display:none;"></div>
 
   
     <button id="zoomBtn" class="ui-btn ui-secondary small-btn" style="display:none;">
@@ -64,11 +71,6 @@ href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.c
       Marker DIL
     </label> -->
 
-    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;">
-      <input type="checkbox" onchange="toggleRoute(this)">
-      Ikuti kompas
-    </label>
-
     <!-- FILTER DIJ & DIL (SEJAJAR DI ATAS) -->
       <div class="row filter-row">
         <label class="chk">
@@ -78,9 +80,15 @@ href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.c
 
         <label class="chk">
           <input type="checkbox" id="chkDIL" checked onchange="applyHariBacaFilter()">
-          Lokasi DIL
+          Lokasi Cadangan
         </label>
       </div>
+
+      <!-- Urutan baca tepat di bawah pilihan lokasi -->
+      <label class="chk">
+        <input type="checkbox" id="showOrderNumbers" checked>
+        Urutan baca
+      </label>
 
       <!-- FILTER 1 HARI BACA -->
       <label class="chk">
@@ -94,21 +102,21 @@ href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.c
         <button onclick="nextHari()">▶</button>
       </div>
 
+
   <hr>
       <button id="historyToggleBtn" class="ui-btn">
       📋 Riwayat
     </button>
       
     <button id="downloadBtn" class="ui-btn small-btn">
-      Finish & Download
+      Download Excel Update
     </button>
     
   </div>
 </div>
 
 <div id="historyPanel" style="display:none;">
-  <button class="close-history" onclick="closeHistory()">✕</button>
-  <div style="font-weight:bold;margin-bottom:6px;">📋 Riwayat Dibaca</div>
+  <div class="history-header"><div style="font-weight:bold;">📋 Riwayat Dibaca</div><button class="close-history" onclick="closeHistory()" aria-label="Tutup riwayat">✕</button></div>
   <div id="historyList"></div>
 </div>
 
